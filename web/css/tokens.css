@@ -1,0 +1,73 @@
+/* Design tokens: colors, spacing and shape. Theme = color-scheme, not duplicated rules. */
+:root {
+  color-scheme: light dark;
+
+  --brand-light: #5b3fd6;
+  --brand-dark: #8b6bff;
+  --brand: light-dark(var(--brand-light), var(--brand-dark));
+  --brand-text: #ffffff;
+
+  --bg-light: #f5f6fa;
+  --bg-dark: #0a0a10;
+  --surface-light: #ffffff;
+  --surface-dark: #16161f;
+  --surface-2-light: #eef0f6;
+  --surface-2-dark: #1e1e29;
+  --border-light: #d9dce6;
+  --border-dark: #2a2a38;
+  --text-light: #1b1d29;
+  --text-dark: #f6f6fb;
+  --muted-light: #5c6172;
+  --muted-dark: #9a9aad;
+
+  --bg: var(--bg-light);
+  --surface: var(--surface-light);
+  --surface-2: var(--surface-2-light);
+  --border: var(--border-light);
+  --text: var(--text-light);
+  --muted: var(--muted-light);
+  --track: var(--border-light);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 15px;
+  --nav-w: 164px;
+  --shadow: 0 4px 14px rgb(0 0 0 / 12%);
+}
+
+/* Fallback for browsers without light-dark() */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: var(--bg-dark);
+    --surface: var(--surface-dark);
+    --surface-2: var(--surface-2-dark);
+    --border: var(--border-dark);
+    --text: var(--text-dark);
+    --muted: var(--muted-dark);
+    --track: var(--border-dark);
+  }
+}
+
+@supports (color: light-dark(white, black)) {
+  :root {
+    --bg: light-dark(var(--bg-light), var(--bg-dark));
+    --surface: light-dark(var(--surface-light), var(--surface-dark));
+    --surface-2: light-dark(var(--surface-2-light), var(--surface-2-dark));
+    --border: light-dark(var(--border-light), var(--border-dark));
+    --text: light-dark(var(--text-light), var(--text-dark));
+    --muted: light-dark(var(--muted-light), var(--muted-dark));
+    --track: light-dark(var(--border-light), var(--border-dark));
+  }
+}
+
+/* Manual override comes from <meta name="color-scheme">; CSS maps it back. */
+:root:has(> head > meta[name="color-scheme"][content="dark"]) { color-scheme: dark; }
+:root:has(> head > meta[name="color-scheme"][content="light"]) { color-scheme: light; }
+
+:root { accent-color: var(--brand); }

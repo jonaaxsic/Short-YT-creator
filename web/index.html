@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<script>document.querySelector('meta[name="color-scheme"]').content = localStorage.getItem("color-scheme") ?? "dark";</script>
+<title>Generador de Shorts</title>
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+  <symbol id="i-clap" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18M8 7l2-4 4 4M14 3l4 4M18 3l3 4"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 8.5 20 20M8.5 15.5 20 4"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1-2 2-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21h-3v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1-2-2 .1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3v-3h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1 2-2 .1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3h3v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1 2 2-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1H21v3h-.1a1.6 1.6 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-restart" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></symbol>
+</svg>
+
+<aside class="nav">
+  <div class="brand"><svg class="ic"><use href="#i-play"/></svg><span>Generador de Shorts</span></div>
+  <nav>
+    <button class="nav-item active" data-view="crear"><svg class="ic"><use href="#i-clap"/></svg>Crear Short</button>
+    <button class="nav-item" data-view="proyectos"><svg class="ic"><use href="#i-folder"/></svg>Mis Proyectos</button>
+    <button class="nav-item" data-view="config"><svg class="ic"><use href="#i-settings"/></svg>Configuración</button>
+    <button class="nav-item" data-view="acerca"><svg class="ic"><use href="#i-info"/></svg>Acerca de</button>
+  </nav>
+</aside>
+
+<main>
+  <header class="page-head">
+    <div class="app-icon"><svg class="ic big"><use href="#i-clap"/></svg></div>
+    <div><h1>Generador de Shorts</h1><p>Ajusta el encuadre, genera clips y crea tu Short en pocos pasos</p></div>
+  </header>
+
+  <section id="view-crear" class="view active">
+    <div class="card origin-bar" id="card-origen">
+          <div class="card-title"><svg class="ic"><use href="#i-link"/></svg>Origen del video</div>
+          <div class="seg" id="src-seg">
+            <button class="seg-opt active" data-src="url"><svg class="ic"><use href="#i-link"/></svg>URL</button>
+            <button class="seg-opt" data-src="path"><svg class="ic"><use href="#i-folder"/></svg>Archivo</button>
+            <button class="seg-opt" data-src="upload"><svg class="ic"><use href="#i-upload"/></svg>Subir</button>
+          </div>
+          <div class="row source-row">
+            <input id="source-input" type="text" placeholder="Pega aquí el enlace de YouTube...">
+            <input id="file-input" type="file" accept="video/mp4,video/*" hidden>
+            <select id="quality" title="Calidad de descarga">
+              <option>1080p</option><option selected>720p</option><option>480p</option>
+              <option>360p</option><option>320p</option><option>best</option>
+            </select>
+            <button id="load-btn" class="btn primary"><svg class="ic"><use href="#i-play"/></svg>Cargar video</button>
+          </div>
+          <p id="load-msg" class="msg"></p>
+          <div id="load-progress" class="load-progress hidden">
+            <div class="load-bar"><span id="load-bar-fill"></span></div>
+            <span id="load-progress-text"></span>
+            <button id="cancel-load-btn" class="btn">Cancelar descarga</button>
+          </div>
+    </div>
+
+    <div class="workspace">
+      <div class="col">
+        <div class="card" id="card-preview">
+          <div class="card-title"><svg class="ic"><use href="#i-eye"/></svg>Vista previa</div>
+          <div class="preview-box">
+            <video id="preview-video" controls playsinline></video>
+            <div id="facecam-overlay" class="cam-overlay"><div class="cam-face"></div><div class="cam-rect"></div></div>
+            <div id="preview-empty" class="empty">Carga un video para ver el encuadre en vivo.</div>
+          </div>
+        </div>
+
+        <div class="card" id="card-clips">
+          <div class="card-title"><svg class="ic"><use href="#i-scissors"/></svg>Clips y modo de edición</div>
+          <div class="field-label">Modo</div>
+          <div class="seg wrap" id="mode-seg">
+            <button class="seg-opt active" data-mode="Por duración fija">Por duración fija</button>
+            <button class="seg-opt" data-mode="Automático">Automático</button>
+            <button class="seg-opt" data-mode="Partes iguales">Partes iguales</button>
+            <button class="seg-opt" data-mode="Personalizado">Personalizado</button>
+          </div>
+          <div id="custom-range" class="row hidden">
+            <div><div class="field-label">Desde (min)</div><input id="start-min" type="number" min="0" step="0.5" value="9"></div>
+            <div><div class="field-label">Hasta (min)</div><input id="end-min" type="number" min="0" step="0.5" value="25.98"></div>
+          </div>
+          <div class="row">
+            <div><div class="field-label">Duración de cada clip (min)</div>
+              <select id="clip-len"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+            </div>
+            <label class="check"><input type="checkbox" id="subs" checked> Subtítulos animados</label>
+          </div>
+          <p id="clip-estimate" class="msg"></p>
+          <details><summary>Transcripción y rendimiento</summary>
+            <div class="row">
+              <select id="model"><option>tiny</option><option>base</option><option>small</option><option>medium</option></select>
+              <select id="lang"><option>es</option><option>en</option><option>auto</option></select>
+              <label class="check"><input type="checkbox" id="gpu"> GPU NVIDIA</label>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card" id="card-encuadre">
+          <div class="card-title"><svg class="ic"><use href="#i-monitor"/></svg>Encuadre de la facecam</div>
+          <div class="seg" id="style-seg">
+            <button class="seg-opt active" data-style="overlay">Facecam flotante</button>
+            <button class="seg-opt" data-style="split">Pantalla dividida</button>
+          </div>
+          <div class="slider"><label>Tamaño de la facecam (%)</label><input type="range" id="share" min="30" max="70" value="45"><output>45 %</output></div>
+          <div class="slider"><label>Ancho facecam (%)</label><input type="range" id="cw" min="5" max="100" value="28"><output>28 %</output></div>
+          <div class="slider"><label>Posición X (%)</label><input type="range" id="cx" min="0" max="100" step="0.01" value="0"><output>0.00 %</output></div>
+          <div class="slider"><label>Posición Y (%)</label><input type="range" id="cy" min="0" max="100" step="0.01" value="60"><output>60.00 %</output></div>
+        </div>
+        <div class="card" id="card-actions">
+          <button id="reset-btn" class="btn"><svg class="ic"><use href="#i-restart"/></svg>Restablecer</button>
+          <button id="generate-btn" class="btn primary"><svg class="ic"><use href="#i-spark"/></svg>Generar Short</button>
+          <button id="cancel-btn" class="btn hidden">Cancelar generación</button>
+          <div id="job-msg" class="msg"></div>
+          <div id="job-progress" class="job-progress hidden"><span id="job-bar"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <section id="results" class="results hidden">
+      <h2>Clips generados</h2>
+      <div id="results-grid" class="results-grid"></div>
+    </section>
+  </section>
+
+  <section id="view-proyectos" class="view hidden">
+    <div class="card"><div class="card-title"><svg class="ic"><use href="#i-folder"/></svg>Mis Proyectos</div>
+      <div id="projects-list"></div>
+    </div>
+  </section>
+
+  <section id="view-config" class="view hidden">
+    <div class="card">
+      <div class="card-title"><svg class="ic"><use href="#i-settings"/></svg>Configuración</div>
+      <div class="field-label">Tema</div>
+      <div class="seg" id="theme-seg">
+        <button class="seg-opt" data-theme="system">Sistema</button>
+        <button class="seg-opt" data-theme="dark">Oscuro</button>
+        <button class="seg-opt" data-theme="light">Claro</button>
+      </div>
+      <div class="field-label">Carpeta de salida (clips)</div>
+      <input id="out-dir" type="text">
+      <div class="field-label">Carpeta de descarga temporal</div>
+      <input id="work-dir" type="text">
+      <label class="check"><input type="checkbox" id="cleanup"> Eliminar el video fuente después de generar (quedan solo los clips)</label>
+      <button id="save-settings" class="btn primary">Guardar ajustes</button>
+      <p id="settings-msg" class="msg"></p>
+      <div class="field-label">Caché temporal</div>
+      <p id="cache-info" class="muted"></p>
+      <button id="clear-cache" class="btn">Limpiar caché</button>
+    </div>
+  </section>
+
+  <section id="view-acerca" class="view hidden">
+    <div class="card"><div class="card-title"><svg class="ic"><use href="#i-info"/></svg>Acerca de</div>
+      <p>Generador de Shorts: convierte un video largo en clips verticales 9:16 con subtítulos animados y facecam opcional.</p>
+      <p class="muted">Frontend propio; Python solo ejecuta la lógica de descarga, transcripción y render.</p>
+      <details open>
+        <summary>Cómo usarlo</summary>
+        <ol>
+          <li>Pega un enlace o elige Subir, selecciona la calidad y pulsa Cargar video.</li>
+          <li>Ajusta el recuadro con los controles mientras ves el video en Vista previa.</li>
+          <li>Elige duración de 1 a 4 minutos y pulsa Generar Short.</li>
+          <li>Reproduce o descarga los clips desde Clips generados.</li>
+        </ol>
+      </details>
+      <p class="muted">Si YouTube bloquea la descarga, usa Subir. En un equipo lento elige 320p o 480p; 1080p descarga cerca de 1 GB.</p>
+    </div>
+  </section>
+</main>
+<div id="idle-overlay" class="idle-overlay hidden">
+  <div class="idle-card">
+    <h2>Servicio detenido por inactividad</h2>
+    <p>Pasaron 10 minutos sin uso. Puedes reactivarlo aquí mismo o volver a ejecutar <code>iniciar.bat</code>.</p>
+    <button id="reactivate-btn" class="btn primary">Reactivar servicio</button>
+  </div>
+</div>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

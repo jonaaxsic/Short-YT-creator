@@ -12,3 +12,9 @@ odd/
 *.wav
 *.ass
 .streamlit/secrets.toml
+config.json
+legacy/
+.agents/
+.atl/
+.claude/
+.odd/
