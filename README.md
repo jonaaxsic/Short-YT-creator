@@ -20,6 +20,8 @@ Turn a long video into vertical 9:16 clips with animated subtitles and an option
 4. Each clip card has an inline playable preview and a single **Descargar** button; no second button or popup window. The preview is a short 6-second sample at low resolution, cached on disk, so playing or rerunning the app never loads the full-size clips into memory. **Descargar** always streams the original clip from disk.
 5. If you reload the page, press **Restablecer** in the bottom bar to restore saved work. Clips already on disk are reused when the settings are unchanged.
 
+The left menu opens **Mis Proyectos** (restore saved clip sets), **Configuración** (light/dark theme, output folder, temporary download folder, and optional source cleanup after generating) and **Acerca de**. The preview card plays a short cached sample of the source before any clip is rendered.
+
 For speed, enable **Modo exprés**: it skips Whisper transcription and subtitles entirely. Otherwise uncheck **Subtítulos animados** to avoid per-clip transcription. Existing clips are never re-rendered unless settings change.
 
 The heavy work (Whisper transcription and ffmpeg rendering) runs on the server. A free Space has a modest CPU and no GPU, so processing can take several minutes; the Space may also go to sleep after inactivity and need a moment to wake up on the next visit. Transcripts are cached in `work/` while the container lives.

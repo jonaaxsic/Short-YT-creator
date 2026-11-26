@@ -108,6 +108,20 @@ def clip_preview(clip):
     return p
 
 
+def source_preview(video):
+    """Short low-res sample of the source, cached; playable without loading the whole file."""
+    p = WORK / f"_srcpreview_{video.stem}.mp4"
+    if not p.exists() or p.stat().st_mtime < video.stat().st_mtime:
+        r = subprocess.run(
+            [FFMPEG, "-y", "-ss", "0", "-i", str(video), "-t", "10", "-vf", "scale=-2:360",
+             "-c:v", "libx264", "-preset", "ultrafast", "-crf", "32",
+             "-c:a", "aac", "-b:a", "64k", "-threads", "1",
+             "-movflags", "+faststart", str(p)], capture_output=True)
+        if r.returncode or not p.exists() or p.stat().st_size < 1024:
+            return None
+    return p
+
+
 def clip_thumb(clip, t=1.0, max_h=720):
     """Cached frame: decoding video on each rerun is expensive."""
     p = WORK / f"_thumb_{clip.stem}_{int(t)}_{max_h}.jpg"
@@ -405,15 +419,16 @@ def _slider_row(icon, label, value, key, lo, hi, step=1, fmt=".0f"):
 QUALITY = {"1080p · Full HD": 1080, "720p · HD": 720, "480p": 480,
            "360p": 360, "320p · ligero": 320, "Mejor disponible": None}
 
-# permanent custom nav (the native sidebar can be hidden with no way back)
+# permanent custom nav — real links, no native sidebar collapse button
+_VIEW = st.query_params.get("view", "crear")
+_NAV = [("crear", "clap", "Crear Short"), ("proyectos", "folder", "Mis Proyectos"),
+        ("config", "settings", "Configuración"), ("acerca", "info", "Acerca de")]
+_nav_html = "".join(
+    f'<a class="sb-item {"active" if _VIEW == key else ""}" href="?view={key}">{I[icon]} {label}</a>'
+    for key, icon, label in _NAV)
 st.html(
     f'<div class="sb-custom"><div class="sb-brand">{I["play"]}<span>Generador de Shorts</span></div>'
-    '<nav class="sb-nav">'
-    f'<div class="sb-item active">{I["clap"]} Crear Short</div>'
-    f'<div class="sb-item">{I["folder"]} Mis Proyectos</div>'
-    f'<div class="sb-item">{I["settings"]} Configuración</div>'
-    f'<div class="sb-item">{I["info"]} Acerca de</div>'
-    '</nav></div>')
+    f'<nav class="sb-nav">{_nav_html}</nav></div>')
 
 st.html(
     f'<div class="app-header"><div class="app-icon">{I["clap"]}</div>'
@@ -423,6 +438,70 @@ st.html(
 IN_SPACE = bool(os.environ.get("SPACE_ID"))
 S = st.session_state
 S.setdefault("results", [])
+
+# direct folder preferences from Configuración
+if S.get("out_dir"):
+    _p = Path(S["out_dir"]).expanduser()
+    try: _p.mkdir(parents=True, exist_ok=True)
+    except Exception: pass
+    OUT = _p.resolve()
+    MANIFEST = OUT / ".manifest.json"
+if S.get("work_dir"):
+    _p = Path(S["work_dir"]).expanduser()
+    try: _p.mkdir(parents=True, exist_ok=True)
+    except Exception: pass
+    WORK = _p.resolve()
+
+if S.get("theme") == "Claro":
+    st.html("<style>:root{--bg:#f5f6fa;--nav:#ffffff;--card:#ffffff;--card2:#eef0f6;"
+            "--border:#d9dce6;--text:#161824;--muted:#5c6172;--input:#f4f5f9;}</style>")
+
+if _VIEW == "proyectos":
+    with st.container(border=True):
+        _title("folder", "Mis Proyectos")
+        groups = {}
+        for f in OUT.glob("*.mp4"):
+            m = re.match(r"^(.*)_clip(\d+)\.mp4$", f.name)
+            if m and f.stat().st_size > 1024:
+                groups.setdefault(m.group(1), []).append((int(m.group(2)), f))
+        if not groups:
+            st.caption("Aún no hay clips guardados.")
+        for stem, items in sorted(groups.items(), key=lambda kv: -len(kv[1])):
+            items.sort()
+            st.markdown(f"**{stem}** · {len(items)} clips")
+            if st.button("Abrir proyecto", key="open_" + re.sub(r"\W", "", stem)[:24]):
+                src = next((WORK / (stem + ext) for ext in (".mp4", ".mkv", ".webm", ".mov", ".avi")
+                            if (WORK / (stem + ext)).exists()), None)
+                if src:
+                    S.video = src
+                    S.W, S.H, S.dur = vinfo(src)
+                S.results = [(f, None, None) for _, f in items]
+                st.query_params["view"] = "crear"
+                st.rerun()
+    st.stop()
+
+if _VIEW == "config":
+    with st.container(border=True):
+        _title("settings", "Configuración")
+        st.segmented_control("Tema", ["Oscuro", "Claro"], key="theme")
+        st.caption("El tema se aplica al guardar. El modo claro cambia los colores de la interfaz.")
+        st.text_input("Carpeta de salida (clips)", value=str(S.get("out_dir", OUT)), key="out_dir_in")
+        st.text_input("Carpeta de descarga temporal", value=str(S.get("work_dir", WORK)), key="work_dir_in")
+        st.checkbox("Eliminar el video fuente después de generar (quedan solo los clips)",
+                    value=bool(S.get("cleanup_source", False)), key="cleanup_in")
+        if st.button("Guardar ajustes", type="primary"):
+            S.out_dir = st.session_state.out_dir_in
+            S.work_dir = st.session_state.work_dir_in
+            S.cleanup_source = st.session_state.cleanup_in
+            st.success("Ajustes guardados.")
+    st.stop()
+
+if _VIEW == "acerca":
+    with st.container(border=True):
+        _title("info", "Acerca de")
+        st.markdown("Generador de Shorts: convierte un video largo en clips verticales 9:16 con subtítulos animados y facecam opcional.")
+        st.caption("La transcripción se guarda en caché y los clips ya generados se reutilizan si no cambias los ajustes.")
+    st.stop()
 
 saved = read_manifest() or scan_saved_clips()
 restore_state = None
@@ -472,37 +551,16 @@ with col_left:
             load_clicked = st.button("Cargar video", type="primary",
                                      icon=":material/play_arrow:", key="load", width="stretch")
 
-    # ---- vista previa (calidad detectada, solo lectura) ----
+    # ---- vista previa reproducible ----
     if "video" in S:
         W, H, dur, p = S.W, S.H, S.dur, S.video
         with st.container(border=True):
-            st.html(
-                f'<div class="prev-head"><div class="prev-title">{I["eye"]}<span>Vista previa</span></div>'
-                f'<span class="qbadge">{S.get("video_quality") or f"{int(H)}p"} · {int(W)}×{int(H)}</span></div>')
-            cached = clip_thumb(p, dur / 2, max_h=0)
-            fr = cv2.imread(str(cached)) if cached is not None else None
-            if fr is not None:
-                if W > H and S.get("layout", "overlay") == "overlay":
-                    fw = int(W * float(S.get("cw", 28)) / 100) // 2 * 2
-                    fx = min(max(int(W * float(S.get("cx", 0)) / 100), 0), W - fw)
-                    fy = min(max(int(H * float(S.get("cy", 60)) / 100), 0), H - fw)
-                    cv2.circle(fr, (fx + fw // 2, fy + fw // 2), fw // 2,
-                               (0, 255, 0), max(3, W // 300))
-                elif W > H:
-                    x, y, w, h = cam_rect(W, H, float(S.get("cx", 0)), float(S.get("cy", 60)),
-                                          float(S.get("cw", 28)),
-                                          int(1920 * float(S.get("share", 45)) / 100) // 2 * 2)
-                    cv2.rectangle(fr, (x, y), (x + w, y + h), (0, 255, 0), max(3, W // 300))
-                disp = fr
-                if fr.shape[0] > 720:
-                    dw = max(int(fr.shape[1] * 720 / fr.shape[0]) // 2 * 2, 2)
-                    disp = cv2.resize(fr, (dw, 720), interpolation=cv2.INTER_AREA)
-                st.image(cv2.cvtColor(disp, cv2.COLOR_BGR2RGB),
-                         alt="Vista previa del encuadre", width=260)
-            st.html(
-                f'<div class="player"><span class="play">{I["play"]}</span>'
-                f'<span class="time">00:00 / {int(dur)//60:02d}:{int(dur)%60:02d}</span>'
-                f'{I["volume"]}{I["full"]}</div>')
+            st.html(f'<div class="prev-head"><div class="prev-title">{I["eye"]}<span>Vista previa</span></div></div>')
+            sample = source_preview(p)
+            if sample is not None:
+                st.video(str(sample), width="stretch", alt="Vista previa reproducible del video")
+            else:
+                st.caption("No se pudo generar la vista previa.")
             if S.get("curve") is not None:
                 with st.expander("Análisis de interés"):
                     k1, k2, k3 = st.columns(3)
@@ -593,8 +651,7 @@ if "video" in S:
                                               format_func=lambda x: styles[x], default="Facecam flotante",
                                               key="layout_style", label_visibility="collapsed")
                 o["layout"] = "overlay" if estilo == "Facecam flotante" else "split"
-                sc, mini = st.columns([3.0, 1.35], gap="medium")
-                with sc:
+                with st.container():
                     if o["layout"] == "split":
                         o["cam_top"] = st.selectbox("Posición",
                             ["Streamer arriba, juego abajo", "Juego arriba, streamer abajo"],
@@ -609,19 +666,6 @@ if "video" in S:
                                           float(S.cy), "cy", 0.0, 100.0, 0.01, ".2f")
                     if not S.get("found"):
                         st.caption("Cara no detectada: ajusta el recuadro.")
-                with mini:
-                    bw = max(6, min(100, o["cw"]))
-                    bh = max(10, min(72, o["share"]))
-                    bx = max(0, min(100 - bw, o["cx"]))
-                    by = max(0, min(100 - bh, o["cy"]))
-                    st.html(
-                        '<div class="cam-mini"><div class="cam-box cam-cross">'
-                        f'<div class="cam-face" style="left:{bx}%;top:{by}%;width:{bw}%;height:{bh}%">'
-                        f'{I["person"]}</div></div></div>')
-                    if st.button("Restaurar posición", icon=":material/restart_alt:",
-                                 key="reset_pos", width="stretch"):
-                        S.update(cx=0.0, cy=60.0, cw=28.0)
-                        st.rerun()
             else:
                 o.update(share=45, cx=0, cy=0, cw=100, layout="none")
                 st.caption("Video vertical: no necesita pantalla dividida.")
@@ -637,9 +681,6 @@ else:
     with col_right:
         with st.container(border=True):
             _title("monitor", "Encuadre de la facecam")
-            st.html('<div class="cam-mini"><div class="cam-box cam-cross">'
-                    '<div class="cam-face" style="left:62%;top:40%;width:28%;height:30%"></div>'
-                    '</div></div>')
             st.caption("Carga un video para ajustar el encuadre.")
         with st.container(border=True):
             reset_all = st.button("Restablecer", icon=":material/restart_alt:",
@@ -714,6 +755,9 @@ if generar and "video" in S:
                 bar.progress(0.10 + 0.85 * i / total,
                              text=f"Clip {i}/{total} · {elapsed:.0f}s · ~{eta:.0f}s restantes")
             save_manifest(p, W, H, dur, o, S.results, fp, S.get("video_quality"))
+            if S.get("cleanup_source"):
+                try: p.unlink(missing_ok=True)
+                except Exception: pass
             bar.progress(1.0, text=f"Listo: {total} clips en {time.perf_counter() - t_render:.0f} s"
                          + (f" · {reused} reutilizados" if reused else ""))
             stt.update(label=f"¡Listo! {total} clips", state="complete")
