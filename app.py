@@ -452,7 +452,7 @@ with col_left:
                                    key="src", label_visibility="collapsed")
         url = path_in = up = None
         quality = "720p · HD"
-        c_in, c_qual, c_btn = st.columns([3.1, 1.2, 1.15], vertical_alignment="bottom", gap="small")
+        c_in, c_qual, c_btn = st.columns([3.1, 1.2, 1.15], vertical_alignment="bottom", gap="medium")
         with c_in:
             if src == "URL":
                 url = st.text_input("Enlace", placeholder="Pega aquí el enlace de YouTube...",
@@ -593,7 +593,7 @@ if "video" in S:
                                               format_func=lambda x: styles[x], default="Facecam flotante",
                                               key="layout_style", label_visibility="collapsed")
                 o["layout"] = "overlay" if estilo == "Facecam flotante" else "split"
-                sc, mini = st.columns([3.0, 1.35], gap="small")
+                sc, mini = st.columns([3.0, 1.35], gap="medium")
                 with sc:
                     if o["layout"] == "split":
                         o["cam_top"] = st.selectbox("Posición",
