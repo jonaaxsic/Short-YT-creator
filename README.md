@@ -16,8 +16,6 @@
 
 <img src="docs/screenshots/01-editor.png" width="720" alt="Editor listo para cargar un video">
 
-<img src="docs/screenshots/02-preview.png" width="720" alt="Video cargado con el recuadro de la facecam">
-
 <img src="docs/screenshots/03-generando.png" width="720" alt="Generación de clips con barra de progreso">
 
 <img src="docs/screenshots/04-clips-generados.png" width="720" alt="Clip generado listo para reproducir o descargar">
