@@ -91,10 +91,11 @@
 [data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-generate) .stButton>button{width:100%!important;}
 
 /* align card rows across the two columns */
-.align-encuadre,.align-preview,.align-actions{display:none;}
-[data-testid="stVerticalBlockBorderWrapper"]:has(.align-encuadre){min-height:174px!important;}
-[data-testid="stVerticalBlockBorderWrapper"]:has(.align-preview){min-height:132px!important;}
-[data-testid="stVerticalBlockBorderWrapper"]:has(.align-actions){min-height:132px!important;}
+.align-origen,.align-encuadre,.align-preview,.align-actions{display:none;}
+[data-testid="stVerticalBlockBorderWrapper"]:has(.align-origen),
+[data-testid="stVerticalBlockBorderWrapper"]:has(.align-encuadre){min-height:180px!important;}
+[data-testid="stVerticalBlockBorderWrapper"]:has(.align-preview),
+[data-testid="stVerticalBlockBorderWrapper"]:has(.align-actions){min-height:136px!important;}
 
 /* inline glyph icons */
 .ic{font-size:15px;line-height:1;color:var(--muted);display:inline-block;}

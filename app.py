@@ -522,6 +522,7 @@ col_left, col_right = st.columns([1.45, 1], gap="medium")
 
 with col_left:
     with st.container(border=True):
+        st.html('<span class="align-origen"></span>')
         _title("link", "Origen del video")
         src_labels = {"URL": ":material/link: URL", "Archivo": ":material/folder: Archivo",
                       "Subir": ":material/upload: Subir"}
