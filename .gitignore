@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.py[cod]
+work/
+salida/
+odd/
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.avi
+*.wav
+*.ass
+.streamlit/secrets.toml

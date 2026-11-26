@@ -1,0 +1,10 @@
+GENERADOR DE SHORTS 9:16 (alternativa gratuita a Opus Clip)
+
+1. Descomprime esta carpeta en tu PC (Windows).
+2. Haz doble clic en iniciar.bat (necesita Python y Node.js 22 o superior instalados).
+3. Se abre en el navegador (localhost:8501).
+4. Pega una URL o ruta de video y pulsa "Cargar video".
+5. Ajusta la facecam, elige el modelo Whisper y pulsa "Analizar video": verás el
+   gráfico de interés por segundo y los momentos destacados.
+6. Elige duración y cantidad, y pulsa "Generar clips".
+Los clips quedan en la carpeta "salida" y también se pueden descargar desde la app.
