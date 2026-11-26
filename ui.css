@@ -90,13 +90,6 @@
 [data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-generate){display:flex!important;flex-direction:column!important;gap:12px!important;}
 [data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-generate) .stButton>button{width:100%!important;}
 
-/* align card rows across the two columns */
-.align-origen,.align-encuadre,.align-preview,.align-actions{display:none;}
-[data-testid="stVerticalBlockBorderWrapper"]:has(.align-origen),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.align-encuadre){min-height:180px!important;}
-[data-testid="stVerticalBlockBorderWrapper"]:has(.align-preview),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.align-actions){min-height:136px!important;}
-
 /* inline glyph icons */
 .ic{font-size:15px;line-height:1;color:var(--muted);display:inline-block;}
 .app-icon .ic{font-size:24px;color:var(--text);}

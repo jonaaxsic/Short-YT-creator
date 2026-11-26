@@ -466,6 +466,8 @@ if S.get("theme") == "Claro":
 .stButton>button[kind="primary"]{color:#fff!important;}
 .stSegmentedControl [role="radio"]{color:#3a3d4d!important;}
 .stSegmentedControl [role="radio"][aria-checked="true"]{color:#fff!important;}
+.stButton>button:hover{background:#e6e9f1!important;border-color:#cfd3df!important;color:#242735!important;}
+.stSegmentedControl [role="radio"]:hover,.stPills [role="radio"]:hover{background:#e7e9f1!important;color:#242735!important;}
 </style>""")
 
 if _VIEW == "proyectos":
@@ -533,8 +535,7 @@ o = dict(cam_top=True, fit=False, subs=True, layout="overlay", share=45,
 col_left, col_right = st.columns([1.45, 1], gap="medium")
 
 with col_left:
-    with st.container(border=True):
-        st.html('<span class="align-origen"></span>')
+    with st.container(border=True, height=170):
         _title("link", "Origen del video")
         src_labels = {"URL": ":material/link: URL", "Archivo": ":material/folder: Archivo",
                       "Subir": ":material/upload: Subir"}
@@ -568,7 +569,6 @@ with col_left:
     if "video" in S:
         W, H, dur, p = S.W, S.H, S.dur, S.video
         with st.container(border=True):
-            st.html('<span class="align-preview"></span>')
             st.html(f'<div class="prev-head"><div class="prev-title">{I["eye"]}<span>Vista previa</span></div></div>')
             sample = source_preview(p)
             if sample is not None:
@@ -584,8 +584,7 @@ with col_left:
                     st.line_chart({"Interés": S.curve.tolist()}, height=140,
                                   alt="Interés por segundo a lo largo del video")
     else:
-        with st.container(border=True):
-            st.html('<span class="align-preview"></span>')
+        with st.container(border=True, height=120):
             _title("eye", "Vista previa")
             st.caption("Carga un video para ver el encuadre en vivo.")
 
@@ -658,7 +657,6 @@ if "video" in S:
     W, H, dur, p = S.W, S.H, S.dur, S.video
     with col_right:
         with st.container(border=True):
-            st.html('<span class="align-encuadre"></span>')
             _title("monitor", "Encuadre de la facecam")
             if W > H:
                 styles = {"Facecam flotante": ":material/monitor: Facecam flotante",
@@ -687,7 +685,7 @@ if "video" in S:
                 st.caption("Video vertical: no necesita pantalla dividida.")
 
         with st.container(border=True):
-            st.html('<span class="align-actions"></span><div class="actions">')
+            st.html('<div class="actions">')
             reset_all = st.button("Restablecer", icon=":material/restart_alt:",
                                   key="reset_all", width="stretch")
             generar = st.button("Generar Short", type="primary", icon=":material/auto_awesome:",
@@ -695,12 +693,10 @@ if "video" in S:
             st.html('</div>')
 else:
     with col_right:
-        with st.container(border=True):
-            st.html('<span class="align-encuadre"></span>')
+        with st.container(border=True, height=170):
             _title("monitor", "Encuadre de la facecam")
             st.caption("Carga un video para ajustar el encuadre.")
-        with st.container(border=True):
-            st.html('<span class="align-actions"></span>')
+        with st.container(border=True, height=120):
             reset_all = st.button("Restablecer", icon=":material/restart_alt:",
                                   key="reset_all", width="stretch")
             generar = st.button("Generar Short", type="primary", icon=":material/auto_awesome:",
