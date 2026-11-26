@@ -456,10 +456,10 @@ with col_left:
         with c_in:
             if src == "URL":
                 url = st.text_input("Enlace", placeholder="Pega aquí el enlace de YouTube...",
-                                    key="url", label_visibility="collapsed")
+                                    key="url", label_visibility="collapsed", live=True)
             elif src == "Archivo":
                 path_in = st.text_input("Ruta", placeholder=r"C:\Videos\stream.mp4",
-                                        key="path_in", label_visibility="collapsed")
+                                        key="path_in", label_visibility="collapsed", live=True)
             else:
                 up = st.file_uploader("Video", type=["mp4", "mov", "mkv", "webm", "avi"],
                                       label_visibility="collapsed")
@@ -633,7 +633,14 @@ if "video" in S:
                                 key="generate")
             st.html('</div>')
 else:
-    reset_all, generar = False, False
+    with col_right:
+        with st.container(border=True):
+            _title("monitor", "Encuadre de la facecam")
+            st.caption("Carga un video para ajustar el encuadre.")
+        with st.container(border=True):
+            reset_all = st.button("Restablecer", icon=":material/restart_alt:", key="reset_all")
+            generar = st.button("Generar Short", type="primary", icon=":material/auto_awesome:",
+                                key="generate", disabled=True)
 
 if reset_all:
     if restore_state:
