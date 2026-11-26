@@ -7,61 +7,41 @@ sdk: docker
 pinned: false
 ---
 
-# Short YT Creator
+<div align="center">
 
-Standalone web frontend for turning a long video into vertical 9:16 clips. The browser owns navigation, theme and all instant interactions; Python only exposes the heavy work (download, transcription, ffmpeg rendering) as an HTTP API. This removes Streamlit reruns entirely.
+# 🎬 Short YT Creator
 
-## Quick path
+**Turn a long video into vertical 9:16 clips with a facecam overlay — fast, lightweight, and without framework bloat.**
 
-1. Double-click `iniciar.bat`, or run `python -m app 8502`.
-2. Open `http://localhost:8502`.
-3. Paste a YouTube URL, choose the download quality and press **Cargar video**.
-4. Adjust the facecam frame while watching the playable preview, then press **Generar Short**.
-5. Play each clip card or download the original file from the results grid.
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![CSS](https://img.shields.io/badge/CSS-variables-1572B6?logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES_modules-F7DF1E?logo=javascript&logoColor=black)
+![HTML5](https://img.shields.io/badge/HTML5-semantic-E34F26?logo=html5&logoColor=white)
+![Vanilla JS](https://img.shields.io/badge/Framework-none-6c757d)
+![Server](https://img.shields.io/badge/Server-Python_stdlib-3776AB)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 
-## Layout
+</div>
 
-| Area | Responsibility |
-|------|----------------|
-| `web/index.html` | Semantic structure only. No logic, no styling. |
-| `web/css/tokens.css` | Colors, spacing, radius and light/dark tokens. |
-| `web/css/app.css` | Layout and components. Reads tokens, never hardcodes colors. |
-| `web/js/state.js` | Single source of truth with a tiny pub/sub. |
-| `web/js/api.js` | Fetch wrappers. The only place that knows endpoint paths. |
-| `web/js/router.js` | View switching without reloads. |
-| `web/js/theme.js` | `color-scheme` + `localStorage`; no page reload. |
-| `web/js/components/` | One module per feature: source, preview, facecam, clips, results, projects, settings. |
-| `app/main.py` | Starts the single HTTP server. |
-| `app/api/` | `routes.py` translates requests; `jobs.py` runs generation in background. |
-| `app/services/` | Domain logic with no HTTP knowledge: video, transcription, clips, storage. |
-| `app/config.py` | Paths, quality map and persisted settings. |
-| `app/state.py` | In-memory current video, results and jobs. |
+## See it in action
 
-## API
+<img src="docs/screenshots/01-editor.png" width="720" alt="Editor listo para cargar un video">
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /api/state` | Current video metadata and clip count. |
-| `GET /api/settings`, `POST /api/settings` | Output folder, temporary folder, source cleanup. |
-| `GET /api/projects`, `POST /api/restore` | List saved clip groups and restore one. |
-| `POST /api/load`, `POST /api/upload` | Load by URL/path or upload a file. |
-| `POST /api/generate`, `GET /api/job?id=` | Start generation and poll progress. |
-| `GET /video/source`, `/video/preview`, `/video/clip` | Range-enabled media streaming. |
+<img src="docs/screenshots/02-preview.png" width="720" alt="Video cargado con el recuadro de la facecam">
 
-## Deploy
+<img src="docs/screenshots/03-generando.png" width="720" alt="Generación de clips con barra de progreso">
 
-`Dockerfile` is single-stage: installs `requirements.txt`, copies `app` and `web`, and runs `python -m app 7860` with `HOST=0.0.0.0`. No Node, no build step, no frontend dependencies.
+<img src="docs/screenshots/04-clips-generados.png" width="720" alt="Clip generado listo para reproducir o descargar">
 
-Clip modes are **Por duración fija** (choose 1–4 minutes, the app proposes how many clips fit the video), **Automático** (2-minute clips based on duration) and **Partes iguales** (equal parts of 1–4 minutes). The estimate appears before generating. While a job runs, **Cancelar generación** stops it so settings can be changed and the job restarted.
+## How to use
 
-For speed, enable **expres** mode: it skips Whisper transcription and subtitles. Transcripts are cached and existing clips are reused when settings do not change. Audio analysis reads one second at a time and ffmpeg output is suppressed, keeping RAM use bounded on 2-core machines. The preview streams the original file with HTTP range requests instead of loading it into memory.
+1. Paste a YouTube URL or choose **Subir**, pick the download quality, then press **Cargar video**.
+2. Move the sliders to place the facecam square while watching the preview.
+3. Choose a clip mode and duration (1–4 minutes), then press **Generar Short**.
+4. Play or download each clip from the results grid.
 
-## Checklist
+## Run it
 
-- [ ] `iniciar.bat` opens a visible console with logs and starts a clean server.
-- [ ] After 10 minutes idle the service pauses; the page shows **Reactivar servicio** and the console logs the reason.
-- [ ] Configuración reports temporary cache size and can clear it without touching clips or source videos.
-- [ ] Navigation and theme never reload the page.
-- [ ] Both themes keep text contrast readable and hover states visible.
-- [ ] Clips are generated in a background job with progress.
-- [ ] No push to git until explicitly requested.
+On Windows, double-click **`iniciar.bat`**. It installs dependencies on first run, starts the server, opens the browser at `http://localhost:8502`, and leaves a visible console with logs.
+
+To stop it, close the console window. After 10 minutes without activity the service pauses and the page offers a **Reactivar servicio** button.

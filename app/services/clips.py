@@ -60,24 +60,26 @@ def circle_mask(size):
 def render(video, start, dur, words, out, W, H, o, on_process=None):
     ass = f"{out.stem}.ass"
     extra_inputs = []
-    if W > H and o.get("layout") == "overlay":  # estilo OpusClip: facecam circular flotante
+    if W > H and o.get("layout") == "overlay":  # facecam cuadrada flotante
         size = min(max(int(1080 * o["share"] / 100) // 2 * 2, 200), 560)
         fw = int(W * o["cw"] / 100) // 2 * 2
         fh = fw
         fx = min(max(int(W * o["cx"] / 100), 0), W - fw)
         fy = min(max(int(H * o["cy"] / 100), 0), H - fh)
-        extra_inputs = ["-i", str(circle_mask(size))]
-        cam = f"crop={fw}:{fh}:{fx}:{fy},scale={size}:{size},format=rgba[cam]"
+        cam = f"crop={fw}:{fh}:{fx}:{fy},scale={size}:{size}[cam]"
         fc = ("[0:v]split=2[g][c];"
               "[g]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[game];"
               f"[c]{cam};"
-              "[1:v]format=gray[mk];[cam][mk]alphamerge[camc];"
-              "[game][camc]overlay=40:180[s]")
+              "[game][cam]overlay=40:180[s]")
         seam = 1400
-    elif W > H:  # horizontal -> pantalla dividida
+    elif W > H:  # horizontal -> pantalla dividida con facecam cuadrada
         cam_h = int(1920 * o["share"] / 100) // 2 * 2; game_h = 1920 - cam_h
-        x, y, w, h = cam_rect(W, H, o["cx"], o["cy"], o["cw"], cam_h)
-        cam = f"crop={w}:{h}:{x}:{y},scale=1080:{cam_h}"
+        fw = int(W * o["cw"] / 100) // 2 * 2
+        fh = fw
+        fx = min(max(int(W * o["cx"] / 100), 0), W - fw)
+        fy = min(max(int(H * o["cy"] / 100), 0), H - fh)
+        cam = (f"crop={fw}:{fh}:{fx}:{fy},scale={cam_h}:{cam_h},"
+               f"pad=1080:{cam_h}:(ow-iw)/2:0")
         if o["fit"]:
             game = (f"[b]split[b1][b2];[b1]scale=1080:{game_h}:force_original_aspect_ratio=increase,"
                     f"crop=1080:{game_h},boxblur=25:5[bg];[b2]scale=1080:-2[fg];[bg][fg]overlay=0:(H-h)/2[game];")
