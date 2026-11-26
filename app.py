@@ -453,7 +453,12 @@ if "video" in S:
                 a, b = st.columns(2)
                 start_s = a.number_input("Inicio (s)", 0.0, float(dur), 0.0, key="start_s")
                 custom_s = b.number_input("Duración (s)", 1.0, float(dur), min(30.0, dur), key="custom_s")
-            o["subs"] = st.checkbox("Subtítulos animados", value=bool(S.get("subs", True)), key="subs")
+            expres = st.checkbox("Modo exprés (sin transcripción, mucho más rápido)",
+                                 value=False, key="expres")
+            o["subs"] = st.checkbox("Subtítulos animados", value=bool(S.get("subs", True)),
+                                    key="subs", disabled=expres)
+            if expres:
+                o["subs"] = False
             with st.expander("Transcripción"):
                 model = st.selectbox("Modelo Whisper", ["tiny", "base", "small", "medium"], index=0, key="model")
                 lang = st.selectbox("Idioma", ["es", "en", "auto"], key="lang")
@@ -476,7 +481,7 @@ if "video" in S:
                     t0 = time.perf_counter()
                     with st.status("Generando...", expanded=True) as stt:
                         bar = st.progress(0.0, text="Preparando...")
-                        use_fast = (mode in ("Por duración fija", "Partes iguales", "Personalizado")
+                        use_fast = (expres or mode in ("Por duración fija", "Partes iguales", "Personalizado")
                                     or bool(fast and mode == "Automático"))
                         if S.get("wav") is None:
                             bar.progress(0.02, text="Extrayendo audio...")

@@ -17,7 +17,10 @@ Turn a long video into vertical 9:16 clips with animated subtitles and an option
 1. Open the Space URL on your phone or computer.
 2. Choose **Subir** and select a video (up to 2 GB). This is the recommended option on the free Space: YouTube frequently blocks downloads coming from cloud IPs, so **URL** mode may fail there.
 3. Pick a recipe, adjust the facecam frame, choose a clip mode and press **Generar clips**.
-4. Download the finished clips from the results list.
+4. Download the finished clips from the results list. Downloads stream from disk, so a long list of clips does not load them all into memory.
+5. If you reload the page, click **Recuperar trabajo guardado** to restore the source video and clips without reprocessing. Clips already on disk are reused when the settings are unchanged.
+
+For speed, enable **Modo exprés**: it skips Whisper transcription and subtitles entirely. Otherwise uncheck **Subtítulos animados** to avoid per-clip transcription. Existing clips are never re-rendered unless settings change.
 
 The heavy work (Whisper transcription and ffmpeg rendering) runs on the server. A free Space has a modest CPU and no GPU, so processing can take several minutes; the Space may also go to sleep after inactivity and need a moment to wake up on the next visit. Transcripts are cached in `work/` while the container lives.
 
