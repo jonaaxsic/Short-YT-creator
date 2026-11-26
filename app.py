@@ -86,6 +86,39 @@ def frame_at(p, t):
     return f if ok else None
 
 
+def preview_path(clip):
+    return WORK / f"_preview_{clip.stem}.mp4"
+
+
+def clip_preview(clip):
+    """Short low-res sample: st.video loads entire files into RAM, so never feed it a full clip."""
+    p = preview_path(clip)
+    if not p.exists() or p.stat().st_mtime < clip.stat().st_mtime:
+        r = subprocess.run(
+            [FFMPEG, "-y", "-ss", "2", "-i", str(clip), "-t", "6", "-vf", "scale=200:-2",
+             "-c:v", "libx264", "-preset", "ultrafast", "-crf", "34",
+             "-c:a", "aac", "-b:a", "48k", "-threads", "1",
+             "-movflags", "+faststart", str(p)],
+            capture_output=True)
+        if r.returncode or not p.exists() or p.stat().st_size < 1024:
+            return None
+    return p
+
+
+def clip_thumb(clip, t=1.0, max_h=720):
+    """Cached frame: decoding video on each rerun is expensive."""
+    p = WORK / f"_thumb_{clip.stem}_{int(t)}_{max_h}.jpg"
+    if not p.exists() or p.stat().st_mtime < clip.stat().st_mtime:
+        fr = frame_at(clip, t)
+        if fr is None:
+            return None
+        if max_h and fr.shape[0] > max_h:
+            w = max(int(fr.shape[1] * max_h / fr.shape[0]) // 2 * 2, 2)
+            fr = cv2.resize(fr, (w, max_h))
+        cv2.imwrite(str(p), fr, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+    return p
+
+
 def cam_rect(W, H, cx, cy, cw, cam_h):
     w = int(W * cw / 100) // 2 * 2
     h = int(w * cam_h / 1080) // 2 * 2
@@ -405,9 +438,11 @@ if "video" in S:
     st.pills("Receta rápida", ["Streams de gaming", "Vídeos largos", "Subtítulos", "Reencuadre"],
              default="Streams de gaming", key="preset", on_change=apply_preset)
 
-    tab_ctrl, tab_prev = st.tabs(["⚙️ Controles", "👁️ Vista previa"])
+    # Controls and the live frame stay side by side: switching tabs to check the
+    # facecam rectangle on every slider move is slow and breaks the adjustment flow.
+    col_ctrl, col_prev = st.columns([3, 2], gap="medium")
     o = {"cam_top": True, "fit": False, "subs": True}
-    with tab_ctrl:
+    with col_ctrl:
         with st.container(border=True):
             st.markdown("**Encuadre de la facecam**")
             if W > H:
@@ -535,10 +570,11 @@ if "video" in S:
                         stt.update(label=f"¡Listo! {total} clips", state="complete")
                 except Exception as e:
                     st.error(f"Error: {e}")
-    with tab_prev:
+    with col_prev:
         with st.container(border=True):
             st.markdown("**Vista previa**")
-            fr = frame_at(p, dur / 2)
+            cached = clip_thumb(p, dur / 2, max_h=0)
+            fr = cv2.imread(str(cached)) if cached is not None else None
             if fr is not None:
                 if W > H and o.get("layout") == "overlay":
                     fw = int(W * o["cw"] / 100) // 2 * 2
@@ -548,7 +584,14 @@ if "video" in S:
                 elif W > H:
                     x, y, w, h = cam_rect(W, H, o["cx"], o["cy"], o["cw"], cam_h)
                     cv2.rectangle(fr, (x, y), (x + w, y + h), (0, 255, 0), max(3, W // 300))
-                st.image(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB),
+                # Draw at full resolution, then downscale only for display. Streamlit
+                # re-encodes this array as PNG on every slider change; on a 2-CPU box
+                # encoding a 1080x1920 frame each time is wasted CPU.
+                disp = fr
+                if fr.shape[0] > 720:
+                    dw = max(int(fr.shape[1] * 720 / fr.shape[0]) // 2 * 2, 2)
+                    disp = cv2.resize(fr, (dw, 720), interpolation=cv2.INTER_AREA)
+                st.image(cv2.cvtColor(disp, cv2.COLOR_BGR2RGB),
                          caption="Círculo verde = facecam" if W > H and o.get("layout") == "overlay"
                          else ("Recuadro verde = facecam" if W > H else "Video vertical"),
                          alt="Vista previa del encuadre", width="stretch")
@@ -563,19 +606,32 @@ if "video" in S:
     if S.get("results"):
         st.subheader(f"Clips generados · {len(S.results)}")
         st.caption("Los clips quedan en `salida/`. Si recargas la página, usa **Recuperar trabajo guardado**.")
+        # First view prepares small previews once, with visible progress instead of
+        # a frozen UI. Later reruns cost nothing because the files are cached.
+        todo = [out for out, _, _ in S.results
+                if not preview_path(out).exists() or preview_path(out).stat().st_mtime < out.stat().st_mtime]
+        if todo:
+            with st.status(f"Preparando {len(todo)} vistas previas (solo la primera vez)...",
+                           expanded=False) as stt:
+                stt.write(f"Creando {len(todo)} muestras cortas (esto solo ocurre una vez).")
+                for j, out in enumerate(todo, 1):
+                    stt.write(f"Vista previa {j}/{len(todo)}")
+                    clip_preview(out)
+                stt.update(label="Vistas previas listas", state="complete")
         grid = st.columns(3)
         for i, (out, s0, score) in enumerate(S.results, 1):
             with grid[(i - 1) % 3].container(border=True):
-                fr = frame_at(out, 1)
-                if fr is not None:
-                    st.image(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB), alt=f"Miniatura del clip {i}", width="stretch")
+                prev = clip_preview(out)
+                if prev is not None:
+                    st.video(str(prev), alt=f"Vista previa del clip {i}")
+                else:
+                    thumb = clip_thumb(out)
+                    if thumb is not None:
+                        st.image(str(thumb), alt=f"Miniatura del clip {i}", width="stretch")
                 label = (f"**{i} · {int(s0 // 60):02d}:{int(s0 % 60):02d}**"
                          if s0 is not None else f"**Clip {i}**")
                 st.markdown(label)
                 st.caption(f"Interés {score:+.1f}" if score else "Clip personalizado")
-                # Pass the bound read_bytes callable: Streamlit reads the file only on click,
-                # instead of loading every clip into RAM on each rerun.
+                # A bound callable keeps the original file out of RAM until the click.
                 st.download_button("Descargar", out.read_bytes, out.name, "video/mp4",
                                    key=f"dl_{i}_{out.name}", icon=":material/download:", width="stretch")
-                with st.expander("Vista previa"):
-                    st.video(str(out), alt=f"Vista previa del clip {i}")
