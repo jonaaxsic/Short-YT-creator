@@ -88,6 +88,16 @@
 [data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-generate){display:flex!important;flex-direction:column!important;gap:12px!important;}
 [data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-generate) .stButton>button{width:100%!important;}
 
+/* inline glyph icons */
+.ic{font-size:15px;line-height:1;color:var(--muted);display:inline-block;}
+.app-icon .ic{font-size:24px;color:var(--text);}
+.sb-brand .ic{font-size:17px;color:var(--text);}
+.sb-item .ic{font-size:16px;}
+.slider-row .ic{width:auto;height:auto;font-size:15px;}
+.card-title .ic{font-size:15px;}
+.prev-title .ic{font-size:16px;}
+.player .ic{font-size:14px;}
+
 /* results */
 .stCaption,.stAlert{font-size:11.5px!important;}
 .stMarkdown p{margin:.4rem 0;}

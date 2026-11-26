@@ -370,25 +370,25 @@ def _svg(d):
 
 
 I = {
-    "play": _svg('<path d="M8 5v14l11-7z"/>'),
-    "link": _svg('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>'),
-    "folder": _svg('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
-    "upload": _svg('<path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>'),
-    "clap": _svg('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18M8 7l2-4 4 4M14 3l4 4M18 3l3 4"/>'),
-    "monitor": _svg('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>'),
-    "grid": _svg('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'),
-    "resize": _svg('<path d="M8 3H3v5M3 3l6 6M16 3h5v5M21 3l-6 6M8 21H3v-5M3 21l6-6M16 21h5v-5M21 21l-6-6"/>'),
-    "arrowH": _svg('<path d="M4 12h16m0 0-4-4m4 4-4 4M4 12l4-4m-4 4 4 4"/>'),
-    "arrowV": _svg('<path d="M12 4v16m0 0-4-4m4 4 4-4M12 4 8 8m4-4 4 4"/>'),
-    "scissors": _svg('<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 8.5 20 20M8.5 15.5 20 4"/>'),
-    "eye": _svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>'),
-    "volume": _svg('<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9a4 4 0 0 1 0 6"/>'),
-    "full": _svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
-    "restart": _svg('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>'),
-    "spark": _svg('<path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'),
-    "settings": _svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1-2 2-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21h-3v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1-2-2 .1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3v-3h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1 2-2 .1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3h3v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1 2 2-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1H21v3h-.1a1.6 1.6 0 0 0-1.5 1z"/>'),
-    "info": _svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'),
-    "person": _svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+    "play": '<span class="ic">▶</span>',
+    "link": '<span class="ic">🔗</span>',
+    "folder": '<span class="ic">📁</span>',
+    "upload": '<span class="ic">⬆</span>',
+    "clap": '<span class="ic">🎬</span>',
+    "monitor": '<span class="ic">🖥</span>',
+    "grid": '<span class="ic">▦</span>',
+    "resize": '<span class="ic">⤢</span>',
+    "arrowH": '<span class="ic">↔</span>',
+    "arrowV": '<span class="ic">↕</span>',
+    "scissors": '<span class="ic">✂</span>',
+    "eye": '<span class="ic">👁</span>',
+    "volume": '<span class="ic">🔊</span>',
+    "full": '<span class="ic">⛶</span>',
+    "restart": '<span class="ic">↺</span>',
+    "spark": '<span class="ic">✦</span>',
+    "settings": '<span class="ic">⚙</span>',
+    "info": '<span class="ic">ⓘ</span>',
+    "person": '<span class="ic">👤</span>',
 }
 
 
@@ -452,7 +452,7 @@ with col_left:
                                    key="src", label_visibility="collapsed")
         url = path_in = up = None
         quality = "720p · HD"
-        c_in, c_qual, c_btn = st.columns([3.1, 1.2, 1.15], vertical_alignment="bottom", gap="medium")
+        c_in, c_qual, c_btn = st.columns([2.95, 1.1, 1.35], vertical_alignment="bottom", gap="medium")
         with c_in:
             if src == "URL":
                 url = st.text_input("Enlace", placeholder="Pega aquí el enlace de YouTube...",
@@ -470,7 +470,7 @@ with col_left:
                                        help="Calidad de descarga. Se fija al cargar y no se puede cambiar después.")
         with c_btn:
             load_clicked = st.button("Cargar video", type="primary",
-                                     icon=":material/play_arrow:", key="load")
+                                     icon=":material/play_arrow:", key="load", width="stretch")
 
     # ---- vista previa (calidad detectada, solo lectura) ----
     if "video" in S:
@@ -628,19 +628,24 @@ if "video" in S:
 
         with st.container(border=True):
             st.html('<div class="actions">')
-            reset_all = st.button("Restablecer", icon=":material/restart_alt:", key="reset_all")
+            reset_all = st.button("Restablecer", icon=":material/restart_alt:",
+                                  key="reset_all", width="stretch")
             generar = st.button("Generar Short", type="primary", icon=":material/auto_awesome:",
-                                key="generate")
+                                key="generate", width="stretch")
             st.html('</div>')
 else:
     with col_right:
         with st.container(border=True):
             _title("monitor", "Encuadre de la facecam")
+            st.html('<div class="cam-mini"><div class="cam-box cam-cross">'
+                    '<div class="cam-face" style="left:62%;top:40%;width:28%;height:30%"></div>'
+                    '</div></div>')
             st.caption("Carga un video para ajustar el encuadre.")
         with st.container(border=True):
-            reset_all = st.button("Restablecer", icon=":material/restart_alt:", key="reset_all")
+            reset_all = st.button("Restablecer", icon=":material/restart_alt:",
+                                  key="reset_all", width="stretch")
             generar = st.button("Generar Short", type="primary", icon=":material/auto_awesome:",
-                                key="generate", disabled=True)
+                                key="generate", disabled=True, width="stretch")
 
 if reset_all:
     if restore_state:
