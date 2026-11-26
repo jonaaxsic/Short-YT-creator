@@ -15,7 +15,7 @@ Turn a long video into vertical 9:16 clips with animated subtitles and an option
 ## Using the web app
 
 1. Open the Space URL on your phone or computer.
-2. Choose **URL** and paste a YouTube link, or choose **Subir** and select a video (up to 2 GB). In URL mode pick the download quality (320p, 360p, 480p, 720p, 1080p or best available) before loading. **Subir** is recommended on the free Space: YouTube often blocks downloads from cloud IPs.
+2. Choose **URL** and paste a YouTube link, or choose **Subir** and select a video (up to 2 GB). In URL mode pick the download quality (320p, 360p, 480p, 720p, 1080p or best available) before loading; it is fixed at download time and shown read-only in the preview. Uploaded files auto-detect their resolution. **Subir** is recommended on the free Space: YouTube often blocks downloads from cloud IPs.
 3. Adjust the facecam frame while watching the live preview, choose a clip mode and press **Generar Short** in the bottom bar.
 4. Each clip card has an inline playable preview and a single **Descargar** button; no second button or popup window. The preview is a short 6-second sample at low resolution, cached on disk, so playing or rerunning the app never loads the full-size clips into memory. **Descargar** always streams the original clip from disk.
 5. If you reload the page, press **Restablecer** in the bottom bar to restore saved work. Clips already on disk are reused when the settings are unchanged.

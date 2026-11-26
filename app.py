@@ -17,8 +17,9 @@ def settings_fp(o, mode, clip_len, n, start_s, custom_s, model, lang):
     return hashlib.sha1(json.dumps(raw, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:8]
 
 
-def save_manifest(video, W, H, dur, o, clips, fp):
-    data = {"video": str(video), "W": W, "H": H, "dur": dur, "options": o, "fp": fp,
+def save_manifest(video, W, H, dur, o, clips, fp, quality=None):
+    data = {"video": str(video), "W": W, "H": H, "dur": dur, "quality": quality,
+            "options": o, "fp": fp,
             "clips": [{"path": str(out), "start": s0, "score": score}
                       for out, s0, score in clips]}
     try:
@@ -404,16 +405,15 @@ def _slider_row(icon, label, value, key, lo, hi, step=1, fmt=".0f"):
 QUALITY = {"1080p · Full HD": 1080, "720p · HD": 720, "480p": 480,
            "360p": 360, "320p · ligero": 320, "Mejor disponible": None}
 
-
-with st.sidebar:
-    st.html(
-        f'<div class="sb-brand">{I["play"]}<span>Generador de Shorts</span></div>'
-        '<nav class="sb-nav">'
-        f'<div class="sb-item active">{I["clap"]} Crear Short</div>'
-        f'<div class="sb-item">{I["folder"]} Mis Proyectos</div>'
-        f'<div class="sb-item">{I["settings"]} Configuración</div>'
-        f'<div class="sb-item">{I["info"]} Acerca de</div>'
-        '</nav>')
+# permanent custom nav (the native sidebar can be hidden with no way back)
+st.html(
+    f'<div class="sb-custom"><div class="sb-brand">{I["play"]}<span>Generador de Shorts</span></div>'
+    '<nav class="sb-nav">'
+    f'<div class="sb-item active">{I["clap"]} Crear Short</div>'
+    f'<div class="sb-item">{I["folder"]} Mis Proyectos</div>'
+    f'<div class="sb-item">{I["settings"]} Configuración</div>'
+    f'<div class="sb-item">{I["info"]} Acerca de</div>'
+    '</nav></div>')
 
 st.html(
     f'<div class="app-header"><div class="app-icon">{I["clap"]}</div>'
@@ -429,6 +429,8 @@ restore_state = None
 if "video" not in S and saved:
     d, saved_video, saved_clips = saved
     restore_state = (d, saved_video, saved_clips)
+    if "video_quality" not in S:
+        S.video_quality = d.get("quality") or f"{int(d.get('H', 0))}p"
 
 mode = "Por duración fija"
 clip_len, n, start_s, custom_s = 60, 3, 0.0, min(30.0, 60.0)
@@ -436,9 +438,9 @@ model, lang, gpu, expres = "tiny", "es", False, False
 o = dict(cam_top=True, fit=False, subs=True, layout="overlay", share=45,
          cx=0.0, cy=60.0, cw=28.0)
 
-col_left, col_right = st.columns([1.85, 1], gap="medium")
+# left column: origen -> vista previa -> clips; right column: encuadre -> acciones
+col_left, col_right = st.columns([1.45, 1], gap="medium")
 
-# ---------- origen del video ----------
 with col_left:
     with st.container(border=True):
         _title("link", "Origen del video")
@@ -450,7 +452,7 @@ with col_left:
                                    key="src", label_visibility="collapsed")
         url = path_in = up = None
         quality = "720p · HD"
-        c_in, c_qual, c_btn = st.columns([3.3, 1.15, 1.15], vertical_alignment="bottom", gap="small")
+        c_in, c_qual, c_btn = st.columns([3.1, 1.2, 1.15], vertical_alignment="bottom", gap="small")
         with c_in:
             if src == "URL":
                 url = st.text_input("Enlace", placeholder="Pega aquí el enlace de YouTube...",
@@ -465,82 +467,57 @@ with col_left:
             if src == "URL":
                 quality = st.selectbox("Calidad", list(QUALITY), index=1, key="quality",
                                        label_visibility="collapsed",
-                                       help="Resolución máxima al descargar desde YouTube.")
+                                       help="Calidad de descarga. Se fija al cargar y no se puede cambiar después.")
         with c_btn:
             load_clicked = st.button("Cargar video", type="primary",
                                      icon=":material/play_arrow:", key="load")
 
-if IN_SPACE:
-    st.caption("En la nube, YouTube bloquea muchas descargas: elige **Subir** y selecciona el video desde tu celular (máx. 2 GB).")
-
-if load_clicked:
-    try:
-        with st.spinner("Cargando..."):
-            if url: p = download(url.strip(), QUALITY[quality])
-            elif path_in: p = Path(path_in.strip().strip('"'))
-            elif up:
-                p = WORK / up.name
-                p.write_bytes(up.getbuffer())
-            else: st.stop()
-            W, H, dur = vinfo(p)
-            S.update(video=p, W=W, H=H, dur=dur, words=None, share=45,
-                     cx=0.0, cy=60.0, cw=28.0, found=False,
-                     curve=None, cs=None, wav=None, wmodel=None, results=[])
-            MANIFEST.unlink(missing_ok=True)
-            if W > H:
-                S.cx, S.cy, S.cw, found = detect_cam(p, W, H, dur,
-                                                     int(1920 * 45 / 100) // 2 * 2)
-                S.found = found
-            st.rerun()
-    except Exception as e:
-        st.error(f"Error: {e}")
-
-# ---------- encuadre / clips / vista previa ----------
-if "video" in S:
-    W, H, dur, p = S.W, S.H, S.dur, S.video
-    with col_left:
+    # ---- vista previa (calidad detectada, solo lectura) ----
+    if "video" in S:
+        W, H, dur, p = S.W, S.H, S.dur, S.video
         with st.container(border=True):
-            _title("monitor", "Encuadre de la facecam")
-            if W > H:
-                styles = {"Facecam flotante": ":material/monitor: Facecam flotante",
-                          "Pantalla dividida": ":material/grid_on: Pantalla dividida"}
-                estilo = st.segmented_control("Estilo", ["Facecam flotante", "Pantalla dividida"],
-                                              format_func=lambda x: styles[x], default="Facecam flotante",
-                                              key="layout_style", label_visibility="collapsed")
-                o["layout"] = "overlay" if estilo == "Facecam flotante" else "split"
-                sc, mini = st.columns([3.1, 1.35], gap="medium")
-                with sc:
-                    if o["layout"] == "split":
-                        o["cam_top"] = st.selectbox("Posición",
-                            ["Streamer arriba, juego abajo", "Juego arriba, streamer abajo"],
-                            key="pos", label_visibility="collapsed").startswith("Streamer")
-                    o["share"] = _slider_row("resize", "Tamaño de la facecam (%)",
-                                             int(S.share), "share", 30, 70)
-                    o["cw"] = _slider_row("arrowH", "Ancho facecam (%)",
-                                          int(S.cw), "cw", 5, 100)
-                    o["cx"] = _slider_row("arrowH", "Posición X (%)",
-                                          float(S.cx), "cx", 0.0, 100.0, 0.01, ".2f")
-                    o["cy"] = _slider_row("arrowV", "Posición Y (%)",
-                                          float(S.cy), "cy", 0.0, 100.0, 0.01, ".2f")
-                    if not S.get("found"):
-                        st.caption("Cara no detectada: ajusta el recuadro.")
-                with mini:
-                    bw = max(6, min(100, o["cw"]))
-                    bh = max(10, min(72, o["share"]))
-                    bx = max(0, min(100 - bw, o["cx"]))
-                    by = max(0, min(100 - bh, o["cy"]))
-                    st.html(
-                        '<div class="cam-mini"><div class="cam-box cam-cross">'
-                        f'<div class="cam-face" style="left:{bx}%;top:{by}%;width:{bw}%;height:{bh}%">'
-                        f'{I["person"]}</div></div></div>')
-                    if st.button("Restaurar posición", icon=":material/restart_alt:",
-                                 key="reset_pos", width="stretch"):
-                        S.update(cx=0.0, cy=60.0, cw=28.0)
-                        st.rerun()
-            else:
-                o.update(share=45, cx=0, cy=0, cw=100, layout="none")
-                st.caption("Video vertical: no necesita pantalla dividida.")
+            st.html(
+                f'<div class="prev-head"><div class="prev-title">{I["eye"]}<span>Vista previa</span></div>'
+                f'<span class="qbadge">{S.get("video_quality") or f"{int(H)}p"} · {int(W)}×{int(H)}</span></div>')
+            cached = clip_thumb(p, dur / 2, max_h=0)
+            fr = cv2.imread(str(cached)) if cached is not None else None
+            if fr is not None:
+                if W > H and S.get("layout", "overlay") == "overlay":
+                    fw = int(W * float(S.get("cw", 28)) / 100) // 2 * 2
+                    fx = min(max(int(W * float(S.get("cx", 0)) / 100), 0), W - fw)
+                    fy = min(max(int(H * float(S.get("cy", 60)) / 100), 0), H - fw)
+                    cv2.circle(fr, (fx + fw // 2, fy + fw // 2), fw // 2,
+                               (0, 255, 0), max(3, W // 300))
+                elif W > H:
+                    x, y, w, h = cam_rect(W, H, float(S.get("cx", 0)), float(S.get("cy", 60)),
+                                          float(S.get("cw", 28)),
+                                          int(1920 * float(S.get("share", 45)) / 100) // 2 * 2)
+                    cv2.rectangle(fr, (x, y), (x + w, y + h), (0, 255, 0), max(3, W // 300))
+                disp = fr
+                if fr.shape[0] > 720:
+                    dw = max(int(fr.shape[1] * 720 / fr.shape[0]) // 2 * 2, 2)
+                    disp = cv2.resize(fr, (dw, 720), interpolation=cv2.INTER_AREA)
+                st.image(cv2.cvtColor(disp, cv2.COLOR_BGR2RGB),
+                         alt="Vista previa del encuadre", width=260)
+            st.html(
+                f'<div class="player"><span class="play">{I["play"]}</span>'
+                f'<span class="time">00:00 / {int(dur)//60:02d}:{int(dur)%60:02d}</span>'
+                f'{I["volume"]}{I["full"]}</div>')
+            if S.get("curve") is not None:
+                with st.expander("Análisis de interés"):
+                    k1, k2, k3 = st.columns(3)
+                    k1.metric("Duración", f"{int(dur) // 60}:{int(dur) % 60:02d}")
+                    k2.metric("Palabras", len(S.words or []))
+                    k3.metric("Resolución", f"{W}x{H}")
+                    st.line_chart({"Interés": S.curve.tolist()}, height=140,
+                                  alt="Interés por segundo a lo largo del video")
+    else:
+        with st.container(border=True):
+            _title("eye", "Vista previa")
+            st.caption("Carga un video para ver el encuadre en vivo.")
 
+    # ---- clips y modo de edición ----
+    if "video" in S:
         with st.container(border=True):
             _title("scissors", "Clips y modo de edición")
             st.html('<div class="field-label">Modo</div>')
@@ -578,66 +555,92 @@ if "video" in S:
                 gpu = st.checkbox("Usar GPU NVIDIA", key="gpu")
                 st.caption("`tiny` es más rápido en CPU. La transcripción se guarda en caché.")
 
-with col_right:
-    if "video" in S:
-        with st.container(border=True):
-            ph, pres = st.columns([1.3, 1], vertical_alignment="center")
-            with ph:
-                st.html(f'<div class="prev-title">{I["eye"]}<span>Vista previa</span></div>')
-            with pres:
-                st.selectbox("Resolución", [f"{W} × {H}", "1080 × 1920", "720 × 1280"],
-                             key="res", label_visibility="collapsed")
-            cached = clip_thumb(p, dur / 2, max_h=0)
-            fr = cv2.imread(str(cached)) if cached is not None else None
-            if fr is not None:
-                if W > H and o.get("layout") == "overlay":
-                    fw = int(W * o["cw"] / 100) // 2 * 2
-                    fx = min(max(int(W * o["cx"] / 100), 0), W - fw)
-                    fy = min(max(int(H * o["cy"] / 100), 0), H - fw)
-                    cv2.circle(fr, (fx + fw // 2, fy + fw // 2), fw // 2,
-                               (0, 255, 0), max(3, W // 300))
-                elif W > H:
-                    x, y, w, h = cam_rect(W, H, o["cx"], o["cy"], o["cw"],
-                                          int(1920 * o["share"] / 100) // 2 * 2)
-                    cv2.rectangle(fr, (x, y), (x + w, y + h), (0, 255, 0), max(3, W // 300))
-                disp = fr
-                if fr.shape[0] > 720:
-                    dw = max(int(fr.shape[1] * 720 / fr.shape[0]) // 2 * 2, 2)
-                    disp = cv2.resize(fr, (dw, 720), interpolation=cv2.INTER_AREA)
-                st.image(cv2.cvtColor(disp, cv2.COLOR_BGR2RGB),
-                         alt="Vista previa del encuadre", width="stretch")
-            st.html(
-                f'<div class="player"><span class="play">{I["play"]}</span>'
-                f'<span class="time">00:00 / {int(dur)//60:02d}:{int(dur)%60:02d}</span>'
-                f'{I["volume"]}{I["full"]}</div>')
-            if S.get("curve") is not None:
-                with st.expander("Análisis de interés"):
-                    k1, k2, k3 = st.columns(3)
-                    k1.metric("Duración", f"{int(dur) // 60}:{int(dur) % 60:02d}")
-                    k2.metric("Palabras", len(S.words or []))
-                    k3.metric("Resolución", f"{W}x{H}")
-                    st.line_chart({"Interés": S.curve.tolist()}, height=150,
-                                  alt="Interés por segundo a lo largo del video")
-    else:
-        with st.container(border=True):
-            _title("eye", "Vista previa")
-            st.caption("Carga un video para ver el encuadre en vivo.")
+if IN_SPACE:
+    st.caption("En la nube, YouTube bloquea muchas descargas: elige **Subir** y selecciona el video desde tu celular (máx. 2 GB).")
 
-# ---------- barra de acciones ----------
-with st.container(border=True):
-    b1, b2 = st.columns([1, 1], vertical_alignment="center")
-    with b1:
-        reset_all = st.button("Restablecer", icon=":material/restart_alt:",
-                              key="reset_all", width="content")
-    with b2:
-        generar = st.button("Generar Short", type="primary", icon=":material/auto_awesome:",
-                            key="generate", width="stretch")
+if load_clicked:
+    try:
+        with st.spinner("Cargando..."):
+            if url: p = download(url.strip(), QUALITY[quality])
+            elif path_in: p = Path(path_in.strip().strip('"'))
+            elif up:
+                p = WORK / up.name
+                p.write_bytes(up.getbuffer())
+            else: st.stop()
+            W, H, dur = vinfo(p)
+            S.update(video=p, W=W, H=H, dur=dur, words=None, share=45,
+                     cx=0.0, cy=60.0, cw=28.0, found=False, video_quality=f"{int(H)}p",
+                     curve=None, cs=None, wav=None, wmodel=None, results=[])
+            MANIFEST.unlink(missing_ok=True)
+            if W > H:
+                S.cx, S.cy, S.cw, found = detect_cam(p, W, H, dur,
+                                                     int(1920 * 45 / 100) // 2 * 2)
+                S.found = found
+            st.rerun()
+    except Exception as e:
+        st.error(f"Error: {e}")
+
+# right column: encuadre (tall) + acciones
+if "video" in S:
+    W, H, dur, p = S.W, S.H, S.dur, S.video
+    with col_right:
+        with st.container(border=True):
+            _title("monitor", "Encuadre de la facecam")
+            if W > H:
+                styles = {"Facecam flotante": ":material/monitor: Facecam flotante",
+                          "Pantalla dividida": ":material/grid_on: Pantalla dividida"}
+                estilo = st.segmented_control("Estilo", ["Facecam flotante", "Pantalla dividida"],
+                                              format_func=lambda x: styles[x], default="Facecam flotante",
+                                              key="layout_style", label_visibility="collapsed")
+                o["layout"] = "overlay" if estilo == "Facecam flotante" else "split"
+                sc, mini = st.columns([3.0, 1.35], gap="small")
+                with sc:
+                    if o["layout"] == "split":
+                        o["cam_top"] = st.selectbox("Posición",
+                            ["Streamer arriba, juego abajo", "Juego arriba, streamer abajo"],
+                            key="pos", label_visibility="collapsed").startswith("Streamer")
+                    o["share"] = _slider_row("resize", "Tamaño de la facecam (%)",
+                                             int(S.share), "share", 30, 70)
+                    o["cw"] = _slider_row("arrowH", "Ancho facecam (%)",
+                                          int(S.cw), "cw", 5, 100)
+                    o["cx"] = _slider_row("arrowH", "Posición X (%)",
+                                          float(S.cx), "cx", 0.0, 100.0, 0.01, ".2f")
+                    o["cy"] = _slider_row("arrowV", "Posición Y (%)",
+                                          float(S.cy), "cy", 0.0, 100.0, 0.01, ".2f")
+                    if not S.get("found"):
+                        st.caption("Cara no detectada: ajusta el recuadro.")
+                with mini:
+                    bw = max(6, min(100, o["cw"]))
+                    bh = max(10, min(72, o["share"]))
+                    bx = max(0, min(100 - bw, o["cx"]))
+                    by = max(0, min(100 - bh, o["cy"]))
+                    st.html(
+                        '<div class="cam-mini"><div class="cam-box cam-cross">'
+                        f'<div class="cam-face" style="left:{bx}%;top:{by}%;width:{bw}%;height:{bh}%">'
+                        f'{I["person"]}</div></div></div>')
+                    if st.button("Restaurar posición", icon=":material/restart_alt:",
+                                 key="reset_pos", width="stretch"):
+                        S.update(cx=0.0, cy=60.0, cw=28.0)
+                        st.rerun()
+            else:
+                o.update(share=45, cx=0, cy=0, cw=100, layout="none")
+                st.caption("Video vertical: no necesita pantalla dividida.")
+
+        with st.container(border=True):
+            st.html('<div class="actions">')
+            reset_all = st.button("Restablecer", icon=":material/restart_alt:", key="reset_all")
+            generar = st.button("Generar Short", type="primary", icon=":material/auto_awesome:",
+                                key="generate")
+            st.html('</div>')
+else:
+    reset_all, generar = False, False
 
 if reset_all:
     if restore_state:
         d, saved_video, saved_clips = restore_state
         opts = d.get("options") or {}
         S.update(video=saved_video, W=d["W"], H=d["H"], dur=d["dur"], results=saved_clips,
+                 video_quality=d.get("quality") or f"{int(d['H'])}p",
                  words=None, wav=None, curve=None, cs=None, wmodel=None,
                  share=opts.get("share", 45), cx=opts.get("cx", 0.0), cy=opts.get("cy", 60.0),
                  cw=opts.get("cw", 28.0), found=False, subs=opts.get("subs", True),
@@ -647,13 +650,12 @@ if reset_all:
                  layout_style=("Facecam flotante" if opts.get("layout", "overlay") == "overlay"
                                else "Pantalla dividida"))
     else:
-        for k in ("video", "results", "words", "wav", "curve", "cs", "wmodel"):
+        for k in ("video", "results", "words", "wav", "curve", "cs", "wmodel", "video_quality"):
             S.pop(k, None)
     st.rerun()
 
 if generar and "video" in S:
     try:
-        t0 = time.perf_counter()
         with st.status("Generando...", expanded=True) as stt:
             bar = st.progress(0.0, text="Preparando...")
             use_fast = (expres or mode in ("Por duración fija", "Partes iguales", "Personalizado")
@@ -662,7 +664,6 @@ if generar and "video" in S:
                 bar.progress(0.02, text="Extrayendo audio...")
                 S.wav = extract_audio(p)
             if use_fast:
-                st.write("Modo rápido: analizando energía del audio (sin transcripción completa)...")
                 S.curve, S.cs = interest_curve(S.wav, [], S.dur)
             else:
                 if S.get("words") is None or S.get("wmodel") != (model, lang):
@@ -691,7 +692,6 @@ if generar and "video" in S:
                     st.write(f"Clip {i}: reutilizando archivo ya generado.")
                 else:
                     if use_fast and o["subs"]:
-                        st.write(f"Transcribiendo clip {i}...")
                         words_i = transcribe_clip(p, s0, d0, model, lang, gpu)
                     else:
                         words_i = S.words or []
@@ -701,7 +701,7 @@ if generar and "video" in S:
                 eta = (elapsed / i) * (total - i)
                 bar.progress(0.10 + 0.85 * i / total,
                              text=f"Clip {i}/{total} · {elapsed:.0f}s · ~{eta:.0f}s restantes")
-            save_manifest(p, W, H, dur, o, S.results, fp)
+            save_manifest(p, W, H, dur, o, S.results, fp, S.get("video_quality"))
             bar.progress(1.0, text=f"Listo: {total} clips en {time.perf_counter() - t_render:.0f} s"
                          + (f" · {reused} reutilizados" if reused else ""))
             stt.update(label=f"¡Listo! {total} clips", state="complete")
