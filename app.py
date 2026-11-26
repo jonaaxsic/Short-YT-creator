@@ -1,4 +1,4 @@
-import json, os, shutil, subprocess, time, wave
+import hashlib, json, os, re, shutil, subprocess, time, wave
 from pathlib import Path
 import cv2, numpy as np, streamlit as st
 import imageio_ffmpeg, yt_dlp
@@ -6,6 +6,57 @@ import imageio_ffmpeg, yt_dlp
 FFMPEG = shutil.which("ffmpeg") or imageio_ffmpeg.get_ffmpeg_exe()
 WORK, OUT = Path("work").resolve(), Path("salida").resolve()
 WORK.mkdir(exist_ok=True); OUT.mkdir(exist_ok=True)
+MANIFEST = OUT / ".manifest.json"
+
+
+# ---------- persistencia de trabajo ----------
+def settings_fp(o, mode, clip_len, n, start_s, custom_s, model, lang):
+    raw = {k: o.get(k) for k in ("layout", "cam_top", "fit", "subs", "share", "cx", "cy", "cw")}
+    raw.update(mode=mode, clip_len=clip_len, n=n, start_s=start_s,
+               custom_s=custom_s, model=model, lang=lang)
+    return hashlib.sha1(json.dumps(raw, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:8]
+
+
+def save_manifest(video, W, H, dur, o, clips, fp):
+    data = {"video": str(video), "W": W, "H": H, "dur": dur, "options": o, "fp": fp,
+            "clips": [{"path": str(out), "start": s0, "score": score}
+                      for out, s0, score in clips]}
+    try:
+        MANIFEST.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def read_manifest():
+    try:
+        d = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        video = Path(d["video"])
+        clips = [(Path(c["path"]), c.get("start"), c.get("score"))
+                 for c in d["clips"]
+                 if Path(c["path"]).exists() and Path(c["path"]).stat().st_size > 1024]
+        return (d, video, clips) if video.exists() and clips else None
+    except Exception:
+        return None
+
+
+def scan_saved_clips():
+    """Recupera clips generados antes de que existiera el manifiesto."""
+    groups = {}
+    for f in OUT.glob("*.mp4"):
+        m = re.match(r"^(.*)_clip(\d+)\.mp4$", f.name)
+        if m and f.stat().st_size > 1024:
+            groups.setdefault(m.group(1), []).append((int(m.group(2)), f))
+    if not groups:
+        return None
+    stem, items = max(groups.items(), key=lambda kv: len(kv[1]))
+    items.sort()
+    video = next((WORK / (stem + ext) for ext in (".mp4", ".mkv", ".webm", ".mov", ".avi")
+                  if (WORK / (stem + ext)).exists()), None)
+    if video is None:
+        return None
+    W, H, dur = vinfo(video)
+    return ({"W": W, "H": H, "dur": dur, "options": {}}, video,
+            [(f, None, None) for _, f in items])
 
 
 # ---------- utilidades de video ----------
@@ -281,6 +332,23 @@ st.caption("Carga un video, ajusta el encuadre y genera clips verticales. "
 S = st.session_state
 S.setdefault("results", [])
 
+saved = read_manifest() or scan_saved_clips()
+if "video" not in S and saved:
+    d, saved_video, saved_clips = saved
+    st.info(f"Trabajo guardado: **{saved_video.name}** · {len(saved_clips)} clips listos.")
+    if st.button("Recuperar trabajo guardado", icon=":material/restore:", key="restore"):
+        opts = d.get("options") or {}
+        S.update(video=saved_video, W=d["W"], H=d["H"], dur=d["dur"], results=saved_clips,
+                 words=None, wav=None, curve=None, cs=None, wmodel=None,
+                 share=opts.get("share", 45), cx=opts.get("cx", 0.0), cy=opts.get("cy", 60.0),
+                 cw=opts.get("cw", 28.0), found=False, subs=opts.get("subs", True),
+                 fit=opts.get("fit", False),
+                 pos=("Streamer arriba, juego abajo" if opts.get("cam_top", True)
+                      else "Juego arriba, streamer abajo"),
+                 layout_style=("Facecam flotante" if opts.get("layout", "overlay") == "overlay"
+                               else "Pantalla dividida"))
+        st.rerun()
+
 
 def apply_preset():
     p = S.get("preset")
@@ -320,6 +388,7 @@ if load_clicked:
             S.update(video=p, W=W, H=H, dur=dur, words=None, share=45,
                      cx=0.0, cy=60.0, cw=28.0, found=False,
                      curve=None, cs=None, wav=None, wmodel=None, results=[])
+            MANIFEST.unlink(missing_ok=True)
             cam_h = int(1920 * 45 / 100) // 2 * 2
             if W > H:
                 S.cx, S.cy, S.cw, found = detect_cam(p, W, H, dur, cam_h)
@@ -430,24 +499,34 @@ if "video" in S:
                         else:
                             clips = plan_clips(dur, mode, int(n), start_s, custom_s, clip_len)
                         total = max(len(clips), 1)
+                        fp = settings_fp(o, mode, clip_len, n, start_s, custom_s, model, lang)
+                        old = read_manifest()
+                        same_settings = bool(old and old[0].get("fp") == fp)
                         S.results = []
                         t_render = time.perf_counter()
+                        reused = 0
                         for i, (s0, d0, score) in enumerate(clips, 1):
                             bar.progress(0.10 + 0.85 * (i - 1) / total,
                                          text=f"Clip {i} de {total}...")
-                            if use_fast and o["subs"]:
-                                st.write(f"Transcribiendo clip {i}...")
-                                words_i = transcribe_clip(p, s0, d0, model, lang, gpu)
-                            else:
-                                words_i = S.words or []
                             out = OUT / f"{p.stem}_clip{i}.mp4"
-                            render(p, s0, d0, words_i, out, W, H, o)
+                            if same_settings and out.exists() and out.stat().st_size > 1024:
+                                reused += 1
+                                st.write(f"Clip {i}: reutilizando archivo ya generado.")
+                            else:
+                                if use_fast and o["subs"]:
+                                    st.write(f"Transcribiendo clip {i}...")
+                                    words_i = transcribe_clip(p, s0, d0, model, lang, gpu)
+                                else:
+                                    words_i = S.words or []
+                                render(p, s0, d0, words_i, out, W, H, o)
                             S.results.append((out, s0, score))
                             elapsed = time.perf_counter() - t_render
                             eta = (elapsed / i) * (total - i)
                             bar.progress(0.10 + 0.85 * i / total,
                                          text=f"Clip {i}/{total} · {elapsed:.0f}s transcurridos · ~{eta:.0f}s restantes")
-                        bar.progress(1.0, text=f"Listo: {total} clips en {time.perf_counter() - t_render:.0f} s")
+                        save_manifest(p, W, H, dur, o, S.results, fp)
+                        bar.progress(1.0, text=f"Listo: {total} clips en {time.perf_counter() - t_render:.0f} s"
+                                     + (f" · {reused} reutilizados" if reused else ""))
                         stt.update(label=f"¡Listo! {total} clips", state="complete")
                 except Exception as e:
                     st.error(f"Error: {e}")
@@ -478,15 +557,20 @@ if "video" in S:
 
     if S.get("results"):
         st.subheader(f"Clips generados · {len(S.results)}")
+        st.caption("Los clips quedan en `salida/`. Si recargas la página, usa **Recuperar trabajo guardado**.")
         grid = st.columns(3)
         for i, (out, s0, score) in enumerate(S.results, 1):
             with grid[(i - 1) % 3].container(border=True):
-                fr = frame_at(p, s0 + 1)
+                fr = frame_at(out, 1)
                 if fr is not None:
                     st.image(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB), alt=f"Miniatura del clip {i}", width="stretch")
-                st.markdown(f"**{i} · {int(s0 // 60):02d}:{int(s0 % 60):02d}**")
+                label = (f"**{i} · {int(s0 // 60):02d}:{int(s0 % 60):02d}**"
+                         if s0 is not None else f"**Clip {i}**")
+                st.markdown(label)
                 st.caption(f"Interés {score:+.1f}" if score else "Clip personalizado")
-                st.download_button("Descargar", out.read_bytes(), out.name, "video/mp4",
+                # Pass the bound read_bytes callable: Streamlit reads the file only on click,
+                # instead of loading every clip into RAM on each rerun.
+                st.download_button("Descargar", out.read_bytes, out.name, "video/mp4",
                                    key=f"dl_{i}_{out.name}", icon=":material/download:", width="stretch")
                 with st.expander("Vista previa"):
-                    st.video(out.read_bytes(), alt=f"Vista previa del clip {i}")
+                    st.video(str(out), alt=f"Vista previa del clip {i}")
