@@ -453,8 +453,20 @@ if S.get("work_dir"):
     WORK = _p.resolve()
 
 if S.get("theme") == "Claro":
-    st.html("<style>:root{--bg:#f5f6fa;--nav:#ffffff;--card:#ffffff;--card2:#eef0f6;"
-            "--border:#d9dce6;--text:#161824;--muted:#5c6172;--input:#f4f5f9;}</style>")
+    st.html("""<style>
+:root{--bg:#f5f6fa;--nav:#ffffff;--card:#ffffff;--card2:#eef0f6;
+--border:#d9dce6;--text:#1b1d29;--muted:#5c6172;--input:#f4f5f9;}
+.stApp{color:var(--text)!important;}
+.app-header h1,.app-header p,.card-title,.field-label,.sb-brand span,.sb-item,
+.slider-row .lb,.slider-row .val,.prev-title,.player,.qbadge{color:var(--text)!important;}
+.sb-item.active{color:#fff!important;}
+.stMarkdown,.stMarkdown p,.stCaption,[data-testid="stWidgetLabel"],label,.stAlert{color:#242735!important;}
+.stTextInput input{color:#161824!important;}
+.stButton>button{color:#242735!important;}
+.stButton>button[kind="primary"]{color:#fff!important;}
+.stSegmentedControl [role="radio"]{color:#3a3d4d!important;}
+.stSegmentedControl [role="radio"][aria-checked="true"]{color:#fff!important;}
+</style>""")
 
 if _VIEW == "proyectos":
     with st.container(border=True):
