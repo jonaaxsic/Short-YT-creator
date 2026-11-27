@@ -88,6 +88,30 @@ def load_transcript(video, wav, model, lang, gpu):
     return words
 
 
+def translate_words(words, target="es"):
+    """Traduce el texto de las palabras al idioma destino, con fallback al original."""
+    unique = list(dict.fromkeys(w["text"] for w in words if w.get("text")))
+    if not unique:
+        return words
+    mapping = {}
+    try:
+        import requests
+        for i in range(0, len(unique), 60):
+            chunk = unique[i:i + 60]
+            response = requests.get(
+                "https://translate.googleapis.com/translate_a/single",
+                params={"client": "gtx", "sl": "auto", "tl": target, "dt": "t",
+                        "q": " | ".join(chunk)}, timeout=8)
+            segments = [item[0] for item in response.json()[0] if item and item[0]]
+            parts = [part.strip() for part in "".join(segments).split("|")]
+            if len(parts) == len(chunk):
+                for source, translated in zip(chunk, parts):
+                    mapping[source] = translated
+    except Exception:
+        return words
+    return [dict(w, text=mapping.get(w.get("text"), w.get("text", ""))) for w in words]
+
+
 def pick_clips(wav, words, total, dur, n, cs=None):
     if cs is None:
         _, cs = interest_curve(wav, words, total)

@@ -92,18 +92,21 @@
             <div><div class="field-label">Hasta (min)</div><input id="end-min" type="number" min="0" step="0.5" value="25.98"></div>
           </div>
           <div class="row">
-            <div><div class="field-label">Duración de cada clip (min)</div>
+            <div><div class="field-label" id="clip-len-label">Duración de cada clip (min)</div>
               <select id="clip-len"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
             </div>
             <label class="check"><input type="checkbox" id="subs" checked> Subtítulos animados</label>
           </div>
           <p id="clip-estimate" class="msg"></p>
-          <details><summary>Transcripción y rendimiento</summary>
+          <details><summary>Seleccionar Transcripción y rendimiento</summary>
             <div class="row">
               <select id="model"><option>tiny</option><option>base</option><option>small</option><option>medium</option></select>
-              <select id="lang"><option>es</option><option>en</option><option>auto</option></select>
+              <select id="lang"><option selected>auto</option><option>es</option><option>en</option></select>
               <label class="check"><input type="checkbox" id="gpu"> GPU NVIDIA</label>
             </div>
+            <label class="check"><input type="checkbox" id="track_face" checked> Seguir el rostro del streamer en cada clip</label>
+            <label class="check"><input type="checkbox" id="translate"> Traducir subtítulos al español</label>
+            <p class="muted">Con <b>auto</b> se detecta el idioma; sin traducir, los subtítulos salen en el idioma original.</p>
           </details>
         </div>
       </div>

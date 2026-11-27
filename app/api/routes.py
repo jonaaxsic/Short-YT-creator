@@ -240,6 +240,19 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 state.LOAD_PROGRESS.update(active=False, percent=0, message="")
                 return self._json({"ok": False, "error": friendly_error(exc)}, 400)
+        if path == "/api/delete-clip":
+            name = self._body().get("name", "")
+            if Path(name).name != name:
+                return self._json({"ok": False, "error": "Nombre de clip no válido"}, 400)
+            target = config.OUT / name
+            if not target.exists():
+                return self._json({"ok": False, "error": "El clip ya no existe"}, 404)
+            target.unlink(missing_ok=True)
+            for f in (video.preview_path(target), config.WORK / f"_thumb_{target.stem}_1_720.jpg"):
+                f.unlink(missing_ok=True)
+            state.STATE["results"] = [item for item in state.STATE["results"]
+                                      if item[0].name != name]
+            return self._json({"ok": True})
         if path == "/api/cancel-load":
             state.LOAD_CANCEL["requested"] = True
             return self._json({"ok": True})

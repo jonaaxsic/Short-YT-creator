@@ -77,6 +77,37 @@ function mountIdle() {
   }, 20000);
 }
 
+function applyStoredUI() {
+  for (const id of ["share", "cw", "cx", "cy"]) {
+    const el = document.querySelector(`#${id}`);
+    if (el && state.settings[id] !== undefined) el.value = state.settings[id];
+  }
+  for (const [selector, key, attr] of [
+    ["#style-seg [data-style]", "layout", "style"],
+    ["#mode-seg [data-mode]", "mode", "mode"]
+  ]) {
+    for (const el of document.querySelectorAll(selector)) {
+      el.classList.toggle("active", el.dataset[attr] === state.settings[key]);
+    }
+  }
+  const clipLen = document.querySelector("#clip-len");
+  if (clipLen) clipLen.value = String(state.settings.clip_len);
+  for (const [id, key] of [["subs", "subs"], ["gpu", "gpu"],
+                           ["translate", "translate"], ["track_face", "track_face"]]) {
+    const el = document.querySelector(`#${id}`);
+    if (el) el.checked = Boolean(state.settings[key]);
+  }
+}
+
+async function restoreWork() {
+  const info = await api.state();
+  if (info.video) {
+    state.video = { name: "", W: info.W, H: info.H, dur: info.dur, quality: info.quality };
+    document.dispatchEvent(new Event("video-loaded"));
+  }
+  if (info.clips) await renderResults();
+}
+
 async function main() {
   mountRouter();
   mountTheme();
@@ -88,8 +119,8 @@ async function main() {
   mountIdle();
   await mountSettings();
   await mountProjects();
-  const info = await api.state();
-  if (info.video) document.dispatchEvent(new Event("video-loaded"));
+  applyStoredUI();
+  await restoreWork();
 }
 
 main().catch((error) => console.error(error));

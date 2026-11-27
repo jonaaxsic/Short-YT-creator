@@ -16,12 +16,23 @@ export async function renderResults() {
     const label = document.createElement("p");
     label.className = "muted";
     label.textContent = clip.name.replace(/\.mp4$/, "");
+    const actions = document.createElement("div");
+    actions.className = "result-actions";
     const link = document.createElement("a");
     link.className = "btn";
     link.href = `/video/clip?name=${encodeURIComponent(clip.name)}`;
     link.download = clip.name;
     link.textContent = "Descargar";
-    card.append(player, label, link);
+    const remove = document.createElement("button");
+    remove.className = "btn danger";
+    remove.textContent = "Eliminar";
+    remove.addEventListener("click", async () => {
+      if (!confirm("¿Eliminar este clip?")) return;
+      await api.deleteClip(clip.name);
+      await renderResults();
+    });
+    actions.append(link, remove);
+    card.append(player, label, actions);
     grid.append(card);
   }
   section.classList.toggle("hidden", clips.length === 0);

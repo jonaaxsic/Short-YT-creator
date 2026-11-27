@@ -48,6 +48,7 @@ export function mountFacecam() {
     face.style.left = `${left}%`;
     face.style.top = `${top}%`;
     face.style.width = `${side}%`;
-    face.style.height = `${side}%`;
+    face.style.height = "auto";
+    face.style.aspectRatio = "1";
   }
 }

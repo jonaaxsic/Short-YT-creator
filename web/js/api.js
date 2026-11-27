@@ -18,6 +18,7 @@ export const api = {
   clearCache: () => request("/api/cache/clear", { method: "POST" }),
   loadProgress: () => request("/api/load-progress"),
   cancelLoad: () => request("/api/cancel-load", { method: "POST" }),
+  deleteClip: (name) => request("/api/delete-clip", json({ name })),
   settings: () => request("/api/settings"),
   saveSettings: (cfg) => request("/api/settings", json(cfg)),
   projects: () => request("/api/projects"),

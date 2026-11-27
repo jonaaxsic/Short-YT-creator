@@ -107,6 +107,33 @@ def cam_rect(W, H, cx, cy, cw, cam_h):
     return x, y, w, h
 
 
+def detect_cam_range(p, W, H, start, dur, cam_h):
+    """Estima el recuadro del streamer dentro de un clip, muestreando varios fotogramas."""
+    try:
+        cas = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+        if cas.empty():
+            return None
+        boxes = []
+        for k in range(6):
+            frame = frame_at(p, start + dur * (k + 0.5) / 6)
+            if frame is None:
+                continue
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = [b for b in cas.detectMultiScale(gray, 1.1, 5, minSize=(40, 40))
+                     if b[2] < W * 0.25]
+            if faces:
+                boxes.append(min(faces, key=lambda b: b[2]))
+        if not boxes:
+            return None
+        x, y, w, h = np.median(np.array(boxes), axis=0)
+        cw_px = w * 3.0
+        cx = (x + w / 2 - cw_px / 2) / W * 100
+        cy = (y + h / 2 - (cw_px * cam_h / 1080) / 2) / H * 100
+        return float(max(cx, 0)), float(max(cy, 0)), float(max(5, cw_px / W * 100))
+    except Exception:
+        return None
+
+
 def detect_cam(p, W, H, dur, cam_h):
     """Busca la cara del streamer (la pequeña) y propone el recuadro de la facecam."""
     try:

@@ -1,9 +1,9 @@
-
 <div align="center">
 
 # 🎬 Short YT Creator
 
 **Turn a long video into vertical 9:16 clips with a facecam overlay — fast, lightweight, and without framework bloat.**
+
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![HTML](https://img.shields.io/badge/HTML-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
@@ -14,11 +14,9 @@
 
 ## See it in action
 
-<img src="docs/screenshots/01-editor.png" width="720" alt="Editor listo para cargar un video">
+<img src="docs/screenshots/slideshow.gif" width="720" alt="Editor, vista previa, generación y clips terminados">
 
-<img src="docs/screenshots/03-generando.png" width="720" alt="Generación de clips con barra de progreso">
-
-<img src="docs/screenshots/04-clips-generados.png" width="720" alt="Clip generado listo para reproducir o descargar">
+*Editor → vista previa → generación → clips terminados*
 
 ## How to use
 

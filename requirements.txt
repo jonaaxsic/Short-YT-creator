@@ -5,3 +5,4 @@ av<19
 opencv-python-headless<5
 numpy
 imageio-ffmpeg
+requests

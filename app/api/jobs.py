@@ -2,7 +2,7 @@
 import math, time
 from pathlib import Path
 from .. import config, state
-from ..services import transcription as tr, clips as cl, storage as st
+from ..services import transcription as tr, clips as cl, storage as st, video as vid
 
 
 def job_update(job_id, progress, message):
@@ -72,8 +72,16 @@ def generate(job_id, s):
             else:
                 words_i = (tr.transcribe_clip(p, s0, d0, model, lang, gpu)
                            if use_fast and o["subs"] else [])
+                if words_i and s.get("translate"):
+                    words_i = tr.translate_words(words_i)
+                clip_o = o
+                if W > H and s.get("track_face", True):
+                    detected = vid.detect_cam_range(
+                        p, W, H, s0, d0, int(1920 * o["share"] / 100) // 2 * 2)
+                    if detected:
+                        clip_o = dict(o, cx=detected[0], cy=detected[1], cw=detected[2])
                 try:
-                    cl.render(p, s0, d0, words_i, out, W, H, o,
+                    cl.render(p, s0, d0, words_i, out, W, H, clip_o,
                               on_process=lambda proc: state.PROCESSES.__setitem__(job_id, proc))
                 except Exception:
                     state.PROCESSES.pop(job_id, None)
@@ -85,6 +93,7 @@ def generate(job_id, s):
                         return
                     raise
             results.append((out, s0, score))
+            vid.clip_preview(out)
             elapsed = time.perf_counter() - t0
             job_update(job_id, 0.10 + 0.85 * i / total,
                        f"Clip {i}/{total} · {elapsed:.0f}s")

@@ -78,8 +78,12 @@ def render(video, start, dur, words, out, W, H, o, on_process=None):
         fh = fw
         fx = min(max(int(W * o["cx"] / 100), 0), W - fw)
         fy = min(max(int(H * o["cy"] / 100), 0), H - fh)
-        cam = (f"crop={fw}:{fh}:{fx}:{fy},scale={cam_h}:{cam_h},"
-               f"pad=1080:{cam_h}:(ow-iw)/2:0")
+        cam = (f"[a]split[c1][c2];"
+               f"[c1]crop={fw}:{fh}:{fx}:{fy},scale={cam_h}:{cam_h}[camsq];"
+               f"[c2]crop={fw}:{fh}:{fx}:{fy},"
+               f"scale=1080:{cam_h}:force_original_aspect_ratio=increase,"
+               f"crop=1080:{cam_h},boxblur=20:5[cambg];"
+               f"[cambg][camsq]overlay=(W-w)/2:0[cam]")
         if o["fit"]:
             game = (f"[b]split[b1][b2];[b1]scale=1080:{game_h}:force_original_aspect_ratio=increase,"
                     f"crop=1080:{game_h},boxblur=25:5[bg];[b2]scale=1080:-2[fg];[bg][fg]overlay=0:(H-h)/2[game];")
@@ -92,7 +96,7 @@ def render(video, start, dur, words, out, W, H, o, on_process=None):
             split = "split=2[a][b]"
         order = "[cam][game]" if o["cam_top"] else "[game][cam]"
         seam = cam_h if o["cam_top"] else game_h
-        fc = f"[0:v]{split};[a]{cam}[cam];{game}{order}vstack=inputs=2[s]"
+        fc = f"[0:v]{split};{cam};{game}{order}vstack=inputs=2[s]"
     else:      # ya es vertical
         seam = 1400
         fc = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[s]"
